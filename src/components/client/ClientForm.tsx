@@ -2,17 +2,16 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
-import { useClients, type ClientInsert, type ClientUpdate } from '@/hooks/useClients'
+import { Loader2, Plus, X } from 'lucide-react'
+import { useClients, type Customer, type CustomerInsert, type CustomerUpdate } from '@/hooks/useClients'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import type { Client } from '@/types/database'
 
 interface ClientFormProps {
-  client?: Client | null
+  client?: Customer | null
   isEdit?: boolean
 }
 
@@ -20,16 +19,17 @@ export function ClientForm({ client, isEdit = false }: ClientFormProps) {
   const router = useRouter()
   const { createClient, updateClient, isCreating, isUpdating } = useClients()
 
-  const [formData, setFormData] = useState<ClientInsert>({
+  const [formData, setFormData] = useState<{
+    name: string
+    emails: string[]
+    phone: string
+    address: string
+    notes: string
+  }>({
     name: client?.name || '',
-    email: client?.email || '',
+    emails: client?.emails || [''],
     phone: client?.phone || '',
-    address_line1: client?.address_line1 || '',
-    address_line2: client?.address_line2 || '',
-    city: client?.city || '',
-    state: client?.state || '',
-    postcode: client?.postcode || '',
-    country: client?.country || 'Australia',
+    address: client?.address || '',
     notes: client?.notes || '',
   })
 
@@ -44,6 +44,29 @@ export function ClientForm({ client, isEdit = false }: ClientFormProps) {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  const handleEmailChange = (index: number, value: string) => {
+    setFormData((prev) => {
+      const newEmails = [...prev.emails]
+      newEmails[index] = value
+      return { ...prev, emails: newEmails }
+    })
+  }
+
+  const addEmail = () => {
+    setFormData((prev) => ({
+      ...prev,
+      emails: [...prev.emails, ''],
+    }))
+  }
+
+  const removeEmail = (index: number) => {
+    if (formData.emails.length <= 1) return
+    setFormData((prev) => ({
+      ...prev,
+      emails: prev.emails.filter((_, i) => i !== index),
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -54,23 +77,33 @@ export function ClientForm({ client, isEdit = false }: ClientFormProps) {
       return
     }
 
-    // Email validation if provided
-    if (formData.email && formData.email.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(formData.email)) {
-        setError('Please enter a valid email address')
+    // Filter out empty emails and validate
+    const validEmails = formData.emails.filter(email => email.trim())
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+    for (const email of validEmails) {
+      if (!emailRegex.test(email)) {
+        setError(`Invalid email address: ${email}`)
         return
       }
     }
 
     try {
+      const data: CustomerInsert = {
+        name: formData.name.trim(),
+        emails: validEmails.length > 0 ? validEmails : null,
+        phone: formData.phone.trim() || null,
+        address: formData.address.trim() || null,
+        notes: formData.notes.trim() || null,
+      }
+
       if (isEdit && client) {
         await updateClient({
           id: client.id,
-          data: formData as ClientUpdate,
+          data: data as CustomerUpdate,
         })
       } else {
-        await createClient(formData)
+        await createClient(data)
       }
 
       router.push('/clients')
@@ -95,8 +128,6 @@ export function ClientForm({ client, isEdit = false }: ClientFormProps) {
 
           {/* Basic Information */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground">Basic Information</h3>
-
             <div className="space-y-2">
               <Label htmlFor="name">Client Name *</Label>
               <Input
@@ -112,114 +143,74 @@ export function ClientForm({ client, isEdit = false }: ClientFormProps) {
               </p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            {/* Email addresses */}
+            <div className="space-y-2">
+              <Label>Email Addresses</Label>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email || ''}
-                  onChange={handleChange}
-                  placeholder="john@example.com"
-                  disabled={isLoading}
-                />
+                {formData.emails.map((email, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => handleEmailChange(index, e.target.value)}
+                      placeholder="john@example.com"
+                      disabled={isLoading}
+                    />
+                    {formData.emails.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeEmail(index)}
+                        disabled={isLoading}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addEmail}
+                disabled={isLoading}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Email
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Invoices will be sent to all email addresses
+              </p>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={formData.phone || ''}
-                  onChange={handleChange}
-                  placeholder="0400 000 000"
-                  disabled={isLoading}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="0400 000 000"
+                disabled={isLoading}
+              />
             </div>
           </div>
 
           {/* Address */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground">Address (Optional)</h3>
-
-            <div className="space-y-2">
-              <Label htmlFor="address_line1">Street Address</Label>
-              <Input
-                id="address_line1"
-                name="address_line1"
-                value={formData.address_line1 || ''}
-                onChange={handleChange}
-                placeholder="123 Main Street"
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address_line2">Address Line 2</Label>
-              <Input
-                id="address_line2"
-                name="address_line2"
-                value={formData.address_line2 || ''}
-                onChange={handleChange}
-                placeholder="Unit 1, Building A"
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="city">City / Suburb</Label>
-                <Input
-                  id="city"
-                  name="city"
-                  value={formData.city || ''}
-                  onChange={handleChange}
-                  placeholder="Sydney"
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  name="state"
-                  value={formData.state || ''}
-                  onChange={handleChange}
-                  placeholder="NSW"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="postcode">Postcode</Label>
-                <Input
-                  id="postcode"
-                  name="postcode"
-                  value={formData.postcode || ''}
-                  onChange={handleChange}
-                  placeholder="2000"
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  name="country"
-                  value={formData.country || ''}
-                  onChange={handleChange}
-                  placeholder="Australia"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="address">Address</Label>
+            <Textarea
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              placeholder="123 Main Street, Sydney NSW 2000"
+              rows={2}
+              disabled={isLoading}
+            />
           </div>
 
           {/* Notes */}
@@ -228,7 +219,7 @@ export function ClientForm({ client, isEdit = false }: ClientFormProps) {
             <Textarea
               id="notes"
               name="notes"
-              value={formData.notes || ''}
+              value={formData.notes}
               onChange={handleChange}
               placeholder="Any additional notes about this client..."
               rows={3}
@@ -237,7 +228,7 @@ export function ClientForm({ client, isEdit = false }: ClientFormProps) {
           </div>
         </CardContent>
 
-        <CardFooter className="flex justify-between">
+        <CardFooter className="flex justify-between pt-2">
           <Button
             type="button"
             variant="outline"

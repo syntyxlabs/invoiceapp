@@ -2,29 +2,35 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import type { Client } from '@/types/database'
 
 const CLIENTS_KEY = ['clients'] as const
 const CLIENT_KEY = (id: string) => ['client', id] as const
 
-export interface ClientInsert {
+// Match the inv_customers table schema
+export interface Customer {
+  id: string
+  user_id: string
   name: string
-  email?: string | null
-  phone?: string | null
-  address_line1?: string | null
-  address_line2?: string | null
-  city?: string | null
-  state?: string | null
-  postcode?: string | null
-  country?: string
-  notes?: string | null
-  business_id?: string | null
+  emails: string[] | null
+  phone: string | null
+  address: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
 }
 
-export interface ClientUpdate extends Partial<ClientInsert> {}
+export interface CustomerInsert {
+  name: string
+  emails?: string[] | null
+  phone?: string | null
+  address?: string | null
+  notes?: string | null
+}
+
+export interface CustomerUpdate extends Partial<CustomerInsert> {}
 
 /**
- * Hook for managing clients with React Query.
+ * Hook for managing customers with React Query.
  * Provides CRUD operations and search functionality.
  */
 export function useClients() {
@@ -32,35 +38,35 @@ export function useClients() {
   const queryClient = useQueryClient()
 
   /**
-   * Fetches all clients for the current user.
+   * Fetches all customers for the current user.
    */
   const clientsQuery = useQuery({
     queryKey: CLIENTS_KEY,
-    queryFn: async (): Promise<Client[]> => {
+    queryFn: async (): Promise<Customer[]> => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { data: clients, error } = await supabase
-        .from('clients')
+      const { data: customers, error } = await supabase
+        .from('inv_customers')
         .select('*')
         .eq('user_id', user.id)
         .order('name', { ascending: true })
 
       if (error) throw error
-      return clients ?? []
+      return customers ?? []
     },
   })
 
   /**
-   * Creates a query for a single client by ID.
+   * Creates a query for a single customer by ID.
    */
   const useClient = (id: string | undefined) => useQuery({
     queryKey: CLIENT_KEY(id || ''),
-    queryFn: async (): Promise<Client | null> => {
+    queryFn: async (): Promise<Customer | null> => {
       if (!id) return null
 
-      const { data: client, error } = await supabase
-        .from('clients')
+      const { data: customer, error } = await supabase
+        .from('inv_customers')
         .select('*')
         .eq('id', id)
         .single()
@@ -70,21 +76,21 @@ export function useClients() {
         throw error
       }
 
-      return client
+      return customer
     },
     enabled: !!id,
   })
 
   /**
-   * Searches clients by name (for voice matching).
+   * Searches customers by name (for voice matching).
    */
-  const searchByName = async (searchName: string): Promise<Client[]> => {
+  const searchByName = async (searchName: string): Promise<Customer[]> => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
     // Use ilike for case-insensitive partial matching
-    const { data: clients, error } = await supabase
-      .from('clients')
+    const { data: customers, error } = await supabase
+      .from('inv_customers')
       .select('*')
       .eq('user_id', user.id)
       .ilike('name', `%${searchName}%`)
@@ -92,36 +98,36 @@ export function useClients() {
       .limit(10)
 
     if (error) throw error
-    return clients ?? []
+    return customers ?? []
   }
 
   /**
-   * Finds the best matching client by name (for AI voice matching).
+   * Finds the best matching customer by name (for AI voice matching).
    */
-  const findBestMatch = async (searchName: string): Promise<Client | null> => {
-    const clients = await searchByName(searchName)
-    if (clients.length === 0) return null
+  const findBestMatch = async (searchName: string): Promise<Customer | null> => {
+    const customers = await searchByName(searchName)
+    if (customers.length === 0) return null
 
     // Exact match (case insensitive)
-    const exactMatch = clients.find(
+    const exactMatch = customers.find(
       c => c.name.toLowerCase() === searchName.toLowerCase()
     )
     if (exactMatch) return exactMatch
 
     // Return first partial match
-    return clients[0]
+    return customers[0]
   }
 
   /**
-   * Creates a new client.
+   * Creates a new customer.
    */
   const createClientMutation = useMutation({
-    mutationFn: async (data: ClientInsert): Promise<Client> => {
+    mutationFn: async (data: CustomerInsert): Promise<Customer> => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { data: client, error } = await supabase
-        .from('clients')
+      const { data: customer, error } = await supabase
+        .from('inv_customers')
         .insert({
           ...data,
           user_id: user.id,
@@ -130,7 +136,7 @@ export function useClients() {
         .single()
 
       if (error) throw error
-      return client
+      return customer
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CLIENTS_KEY })
@@ -138,12 +144,12 @@ export function useClients() {
   })
 
   /**
-   * Updates an existing client.
+   * Updates an existing customer.
    */
   const updateClientMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: ClientUpdate }): Promise<Client> => {
-      const { data: client, error } = await supabase
-        .from('clients')
+    mutationFn: async ({ id, data }: { id: string; data: CustomerUpdate }): Promise<Customer> => {
+      const { data: customer, error } = await supabase
+        .from('inv_customers')
         .update({
           ...data,
           updated_at: new Date().toISOString(),
@@ -153,7 +159,7 @@ export function useClients() {
         .single()
 
       if (error) throw error
-      return client
+      return customer
     },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: CLIENTS_KEY })
@@ -162,25 +168,25 @@ export function useClients() {
   })
 
   /**
-   * Deletes a client (prevents deletion if invoices exist).
+   * Deletes a customer (prevents deletion if invoices exist).
    */
   const deleteClientMutation = useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      // Check if any invoices exist for this client
+      // Check if any invoices exist for this customer
       const { data: invoices, error: checkError } = await supabase
-        .from('invoices')
+        .from('inv_invoices')
         .select('id')
-        .eq('client_id', id)
+        .eq('customer_id', id)
         .limit(1)
 
       if (checkError) throw checkError
 
       if (invoices && invoices.length > 0) {
-        throw new Error('Cannot delete client: invoices exist for this client')
+        throw new Error('Cannot delete customer: invoices exist for this customer')
       }
 
       const { error } = await supabase
-        .from('clients')
+        .from('inv_customers')
         .delete()
         .eq('id', id)
 
@@ -192,13 +198,13 @@ export function useClients() {
   })
 
   /**
-   * Checks if a client can be deleted (no invoices exist).
+   * Checks if a customer can be deleted (no invoices exist).
    */
   const checkCanDelete = async (id: string): Promise<boolean> => {
     const { data: invoices, error } = await supabase
-      .from('invoices')
+      .from('inv_invoices')
       .select('id')
-      .eq('client_id', id)
+      .eq('customer_id', id)
       .limit(1)
 
     if (error) throw error

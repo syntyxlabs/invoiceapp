@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Mail, Phone, MapPin, MoreVertical, Pencil, Trash2, Loader2 } from 'lucide-react'
-import { useClients } from '@/hooks/useClients'
+import { useClients, type Customer } from '@/hooks/useClients'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -23,12 +23,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import type { Client } from '@/types/database'
 
 export function ClientList() {
   const router = useRouter()
   const { clients, isLoading, isError, error, deleteClient, isDeleting } = useClients()
-  const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
+  const [clientToDelete, setClientToDelete] = useState<Customer | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const handleDelete = async () => {
@@ -93,10 +92,10 @@ export function ClientList() {
                   </Link>
 
                   <div className="mt-2 space-y-1">
-                    {client.email && (
+                    {client.emails && client.emails.length > 0 && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Mail className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{client.email}</span>
+                        <span className="truncate">{client.emails.join(', ')}</span>
                       </div>
                     )}
 
@@ -107,14 +106,10 @@ export function ClientList() {
                       </div>
                     )}
 
-                    {(client.address_line1 || client.city) && (
+                    {client.address && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MapPin className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">
-                          {[client.address_line1, client.city, client.state, client.postcode]
-                            .filter(Boolean)
-                            .join(', ')}
-                        </span>
+                        <span className="truncate">{client.address}</span>
                       </div>
                     )}
                   </div>
