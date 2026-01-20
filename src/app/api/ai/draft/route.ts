@@ -1,8 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { invoiceSchema } from '@/lib/openai/schemas'
+import { createClient } from '@/lib/supabase/server'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+/**
+ * Look up a customer by name and return their stored details
+ */
+async function findCustomerByName(userId: string, customerName: string) {
+  if (!customerName || customerName === 'Customer') return null
+
+  const supabase = await createClient()
+
+  // Try exact match first (case insensitive)
+  const { data: exactMatch } = await supabase
+    .from('inv_customers')
+    .select('*')
+    .eq('user_id', userId)
+    .ilike('name', customerName)
+    .limit(1)
+    .single()
+
+  if (exactMatch) return exactMatch
+
+  // Try partial match (name contains the search term)
+  const { data: partialMatches } = await supabase
+    .from('inv_customers')
+    .select('*')
+    .eq('user_id', userId)
+    .ilike('name', `%${customerName}%`)
+    .order('name', { ascending: true })
+    .limit(5)
+
+  if (partialMatches && partialMatches.length > 0) {
+    // Return the best match (shortest name that contains the search term)
+    return partialMatches.sort((a, b) => a.name.length - b.name.length)[0]
+  }
+
+  return null
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +48,10 @@ export async function POST(request: NextRequest) {
     if (!transcript) {
       return NextResponse.json({ error: 'No transcript provided' }, { status: 400 })
     }
+
+    // Get current user for customer lookup
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
     const today = new Date().toISOString().split('T')[0]
     const dueDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -54,6 +95,29 @@ changes_summary should be empty array for initial drafts.`
     })
 
     const draft = JSON.parse(response.choices[0].message.content || '{}')
+
+    // Auto-populate customer emails from stored customers
+    if (user && draft.customer?.name) {
+      const storedCustomer = await findCustomerByName(user.id, draft.customer.name)
+
+      if (storedCustomer) {
+        // Update draft with stored customer info
+        draft.customer.emails = storedCustomer.emails || []
+
+        // Optionally use stored address if no job address specified
+        if (!draft.invoice?.job_address && storedCustomer.address) {
+          draft.invoice.job_address = storedCustomer.address
+        }
+
+        // Add flag to indicate customer was matched
+        draft._customerMatched = {
+          id: storedCustomer.id,
+          name: storedCustomer.name,
+          emailCount: storedCustomer.emails?.length || 0
+        }
+      }
+    }
+
     return NextResponse.json(draft)
   } catch (error: unknown) {
     console.error('Draft generation error:', error)
