@@ -450,7 +450,7 @@ export interface Database {
           }
         ]
       }
-      invoice_items: {
+      inv_line_items: {
         Row: {
           id: string
           invoice_id: string
@@ -483,7 +483,7 @@ export interface Database {
         }
         Relationships: [
           {
-            foreignKeyName: 'invoice_items_invoice_id_fkey'
+            foreignKeyName: 'inv_line_items_invoice_id_fkey'
             columns: ['invoice_id']
             isOneToOne: false
             referencedRelation: 'invoices'
@@ -517,7 +517,7 @@ export type Profile = Tables<'profiles'>
 export type Business = Tables<'businesses'>
 export type Client = Tables<'clients'>
 export type Invoice = Tables<'invoices'>
-export type InvoiceItem = Tables<'invoice_items'>
+export type InvoiceItem = Tables<'inv_line_items'>
 
 // Business profile types (inv_ prefixed tables)
 export type BusinessProfile = Tables<'inv_business_profiles'>

@@ -55,14 +55,18 @@ export async function POST(request: NextRequest) {
         business_profile_id: businessProfileId,
         invoice_number: invoiceNumber,
         status: 'draft',
-        issue_date: draft.invoice.invoice_date,
+        invoice_date: draft.invoice.invoice_date,
         due_date: draft.invoice.due_date,
+        customer_name: draft.customer.name,
+        customer_emails: draft.customer.emails,
+        job_address: draft.invoice.job_address,
         subtotal,
-        tax_rate: taxRate,
-        tax_amount: taxAmount,
+        gst_amount: taxAmount,
+        gst_enabled: draft.invoice.gst_enabled,
         total,
         notes: draft.notes,
-        voice_transcript: null,
+        original_voice_transcript: null,
+        ai_draft_json: draft,
       })
       .select()
       .single()
@@ -80,14 +84,15 @@ export async function POST(request: NextRequest) {
       invoice_id: invoice.id,
       description: item.description,
       quantity: item.quantity,
+      unit: item.unit || 'ea',
       unit_price: item.unit_price || 0,
-      amount: (item.quantity * (item.unit_price || 0)),
+      line_total: (item.quantity * (item.unit_price || 0)),
       sort_order: index,
     }))
 
     if (lineItemsToInsert.length > 0) {
       const { error: lineItemsError } = await supabase
-        .from('invoice_items')
+        .from('inv_line_items')
         .insert(lineItemsToInsert)
 
       if (lineItemsError) {

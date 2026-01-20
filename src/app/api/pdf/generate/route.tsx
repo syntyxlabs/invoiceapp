@@ -78,7 +78,7 @@ async function generateFromDatabase(invoiceId: string) {
 
   // Fetch line items
   const { data: lineItems } = await supabase
-    .from('invoice_items')
+    .from('inv_line_items')
     .select('*')
     .eq('invoice_id', invoiceId)
     .order('sort_order', { ascending: true })

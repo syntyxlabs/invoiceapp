@@ -19,6 +19,7 @@ export default function EditInvoicePage() {
 
   const [showSendDialog, setShowSendDialog] = useState(false)
   const [invoiceToSend, setInvoiceToSend] = useState<InvoiceDraft | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   // Get the default business profile
   const defaultProfile = profiles.find(p => p.is_default) || profiles[0]
@@ -51,10 +52,50 @@ export default function EditInvoicePage() {
     return { subtotal, gstAmount, total }
   }, [invoiceToSend])
 
-  const handleSave = (invoice: InvoiceDraft) => {
-    // TODO: Save to database in Phase 7
-    console.log('Saving draft:', invoice)
-    alert('Draft saved! (Database integration coming in Phase 7)')
+  const handleSave = async (invoice: InvoiceDraft) => {
+    if (!defaultProfile) {
+      alert('Please create a business profile before saving invoices.')
+      router.push('/profiles/new')
+      return
+    }
+
+    setIsSaving(true)
+
+    try {
+      const response = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          draft: invoice,
+          draftId: draftId,
+          photos: photos.map(p => ({
+            id: p.id,
+            storage_path: p.storage_path,
+            filename: p.filename,
+          })),
+          businessProfileId: defaultProfile.id,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save invoice')
+      }
+
+      const result = await response.json()
+      alert(`Draft saved! Invoice number: ${result.invoiceNumber}`)
+
+      // Clear draft and redirect to invoices list
+      clearDraft()
+      router.push('/invoices')
+    } catch (error) {
+      console.error('Save error:', error)
+      alert(error instanceof Error ? error.message : 'Failed to save invoice')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleSend = (invoice: InvoiceDraft) => {
