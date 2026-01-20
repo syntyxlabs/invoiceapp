@@ -25,6 +25,7 @@ export interface Database {
           payment_link: string | null
           default_footer_note: string | null
           is_default: boolean
+          logo_url: string | null
           created_at: string
           updated_at: string
         }
@@ -43,6 +44,7 @@ export interface Database {
           payment_link?: string | null
           default_footer_note?: string | null
           is_default?: boolean
+          logo_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -61,6 +63,7 @@ export interface Database {
           payment_link?: string | null
           default_footer_note?: string | null
           is_default?: boolean
+          logo_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -126,6 +129,11 @@ export interface Database {
           notes: string | null
           terms: string | null
           voice_transcript: string | null
+          customer_name: string | null
+          customer_emails: string[] | null
+          customer_abn: string | null
+          job_address: string | null
+          prices_include_gst: boolean
           created_at: string
           updated_at: string
         }
@@ -145,6 +153,11 @@ export interface Database {
           notes?: string | null
           terms?: string | null
           voice_transcript?: string | null
+          customer_name?: string | null
+          customer_emails?: string[] | null
+          customer_abn?: string | null
+          job_address?: string | null
+          prices_include_gst?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -164,6 +177,11 @@ export interface Database {
           notes?: string | null
           terms?: string | null
           voice_transcript?: string | null
+          customer_name?: string | null
+          customer_emails?: string[] | null
+          customer_abn?: string | null
+          job_address?: string | null
+          prices_include_gst?: boolean
           created_at?: string
           updated_at?: string
         }

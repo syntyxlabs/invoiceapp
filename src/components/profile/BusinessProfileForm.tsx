@@ -1,16 +1,19 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { LogoUpload } from './LogoUpload'
 import {
   Form,
   FormControl,
@@ -46,6 +49,7 @@ const profileSchema = z.object({
   is_default: z.boolean(),
   sequence_prefix: z.string().min(1, 'Prefix is required'),
   sequence_starting_number: z.number().min(1, 'Must be at least 1'),
+  logo_url: z.string().nullable().optional(),
 })
 
 type ProfileFormValues = z.infer<typeof profileSchema>
@@ -59,6 +63,17 @@ export function BusinessProfileForm({ profile, mode }: BusinessProfileFormProps)
   const router = useRouter()
   const { createProfile, updateProfile, isCreating, isUpdating } = useBusinessProfile()
   const isLoading = isCreating || isUpdating
+  const [userId, setUserId] = useState<string | null>(null)
+
+  // Get user ID on mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) setUserId(user.id)
+    }
+    fetchUser()
+  }, [])
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -77,6 +92,7 @@ export function BusinessProfileForm({ profile, mode }: BusinessProfileFormProps)
       is_default: profile?.is_default ?? false,
       sequence_prefix: profile?.sequence?.prefix ?? 'INV',
       sequence_starting_number: profile?.sequence?.next_number ?? 1,
+      logo_url: profile?.logo_url ?? null,
     },
   })
 
@@ -103,6 +119,7 @@ export function BusinessProfileForm({ profile, mode }: BusinessProfileFormProps)
         payment_link: values.payment_link || null,
         default_footer_note: values.default_footer_note || null,
         is_default: values.is_default,
+        logo_url: values.logo_url || null,
       }
 
       const sequenceData = {
@@ -145,6 +162,28 @@ export function BusinessProfileForm({ profile, mode }: BusinessProfileFormProps)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Logo Upload */}
+            {userId && (
+              <FormField
+                control={form.control}
+                name="logo_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Business Logo</FormLabel>
+                    <FormControl>
+                      <LogoUpload
+                        currentLogoUrl={field.value || null}
+                        onLogoChange={(url) => field.onChange(url)}
+                        userId={userId}
+                        profileId={profile?.id}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="trading_name"

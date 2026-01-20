@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { InvoiceEditor } from '@/components/invoice/InvoiceEditor'
 import { useInvoiceDraftStore } from '@/stores/invoice-draft-store'
+import type { InvoiceDraft } from '@/lib/openai/schemas'
 
 export default function EditInvoicePage() {
   const router = useRouter()
-  const { draft, originalTranscript, clearDraft } = useInvoiceDraftStore()
+  const { draft, draftId, photos, originalTranscript, clearDraft, setPhotos } = useInvoiceDraftStore()
 
   // Redirect to new invoice page if no draft exists
   useEffect(() => {
@@ -24,6 +26,18 @@ export default function EditInvoicePage() {
       return () => clearTimeout(timer)
     }
   }, [draft, router])
+
+  const handleSave = (invoice: InvoiceDraft) => {
+    // TODO: Save to database in Phase 7
+    console.log('Saving draft:', invoice)
+    alert('Draft saved! (Database integration coming in Phase 7)')
+  }
+
+  const handleSend = (invoice: InvoiceDraft) => {
+    // TODO: Generate PDF and send email in Phase 6
+    console.log('Sending invoice:', invoice)
+    alert('Send functionality coming in Phase 6!')
+  }
 
   if (!draft) {
     return (
@@ -83,129 +97,14 @@ export default function EditInvoicePage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Customer</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="space-y-2 text-sm">
-            <div>
-              <dt className="text-muted-foreground">Name</dt>
-              <dd className="font-medium">{draft.customer.name}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Email(s)</dt>
-              <dd className="font-medium">
-                {draft.customer.emails.length > 0
-                  ? draft.customer.emails.join(', ')
-                  : '(not provided)'}
-              </dd>
-            </div>
-            {draft.customer.address && (
-              <div>
-                <dt className="text-muted-foreground">Address</dt>
-                <dd className="font-medium">{draft.customer.address}</dd>
-              </div>
-            )}
-          </dl>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Invoice Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Invoice Date</dt>
-              <dd className="font-medium">{draft.invoice.invoice_date}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Due Date</dt>
-              <dd className="font-medium">{draft.invoice.due_date}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">GST Enabled</dt>
-              <dd className="font-medium">{draft.invoice.gst_enabled ? 'Yes' : 'No'}</dd>
-            </div>
-            {draft.invoice.job_address && (
-              <div>
-                <dt className="text-muted-foreground">Job Address</dt>
-                <dd className="font-medium">{draft.invoice.job_address}</dd>
-              </div>
-            )}
-          </dl>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Line Items</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {draft.line_items.length > 0 ? (
-            <div className="space-y-4">
-              {draft.line_items.map((item, index) => (
-                <div key={index} className="p-4 bg-muted rounded-lg">
-                  <p className="font-medium">{item.description}</p>
-                  <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
-                    <span>Qty: {item.quantity} {item.unit}</span>
-                    <span>
-                      Price: {item.unit_price !== null
-                        ? `$${item.unit_price.toFixed(2)}`
-                        : '(not specified)'}
-                    </span>
-                    {item.unit_price !== null && (
-                      <span className="font-medium text-foreground">
-                        Total: ${(item.quantity * item.unit_price).toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No line items</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {draft.notes && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Notes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm whitespace-pre-wrap">{draft.notes}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Raw JSON (Debug)</CardTitle>
-          <CardDescription>
-            This is the raw draft data. Phase 4 will build a full editor interface.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <pre className="text-xs bg-muted p-4 rounded-lg overflow-x-auto">
-            {JSON.stringify(draft, null, 2)}
-          </pre>
-        </CardContent>
-      </Card>
-
-      <div className="flex gap-4">
-        <Link href="/invoices/new" className="flex-1">
-          <Button variant="outline" className="w-full" onClick={() => clearDraft()}>
-            Start Over
-          </Button>
-        </Link>
-        <Button className="flex-1" disabled>
-          Save Invoice (Coming in Phase 4)
-        </Button>
-      </div>
+      <InvoiceEditor
+        initialDraft={draft}
+        draftId={draftId!}
+        photos={photos}
+        onPhotosChange={setPhotos}
+        onSave={handleSave}
+        onSend={handleSend}
+      />
     </div>
   )
 }

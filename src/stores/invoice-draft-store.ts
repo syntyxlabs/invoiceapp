@@ -1,18 +1,35 @@
 import { create } from 'zustand'
 import type { InvoiceDraft } from '@/lib/openai/schemas'
 
+export interface Photo {
+  id: string
+  storage_path: string
+  filename: string
+  url?: string
+}
+
 interface InvoiceDraftState {
+  draftId: string | null
   draft: InvoiceDraft | null
+  photos: Photo[]
   originalTranscript: string | null
   setDraft: (draft: InvoiceDraft) => void
+  setPhotos: (photos: Photo[]) => void
   setTranscript: (transcript: string) => void
   clearDraft: () => void
 }
 
 export const useInvoiceDraftStore = create<InvoiceDraftState>((set) => ({
+  draftId: null,
   draft: null,
+  photos: [],
   originalTranscript: null,
-  setDraft: (draft) => set({ draft }),
+  setDraft: (draft) => set((state) => ({
+    draft,
+    // Generate draftId if not exists
+    draftId: state.draftId || crypto.randomUUID()
+  })),
+  setPhotos: (photos) => set({ photos }),
   setTranscript: (transcript) => set({ originalTranscript: transcript }),
-  clearDraft: () => set({ draft: null, originalTranscript: null }),
+  clearDraft: () => set({ draft: null, draftId: null, photos: [], originalTranscript: null }),
 }))

@@ -63,12 +63,14 @@ export type InvoiceDraft = {
     name: string
     emails: string[]
     address?: string | null
+    abn?: string | null
   }
   invoice: {
     invoice_date: string
     due_date: string
     job_address?: string | null
     gst_enabled: boolean
+    prices_include_gst?: boolean
   }
   line_items: {
     description: string
