@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { InvoicePDF, type InvoicePDFProps } from '@/lib/pdf/invoice-template'
-import { sendReminderEmail } from '@/lib/email/sendgrid'
+import { sendReminderEmail } from '@/lib/email/resend'
 import { createClient } from '@/lib/supabase/server'
 
 // Helper function to create PDF element

@@ -1,9 +1,14 @@
-import sgMail from '@sendgrid/mail'
+import { Resend } from 'resend'
 
-// Initialize SendGrid with API key
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY environment variable is not set')
+  }
+  return new Resend(apiKey)
 }
+
+const fromEmail = process.env.RESEND_FROM_EMAIL || 'invoices@syntyxlabs.com'
 
 interface SendInvoiceEmailParams {
   to: string[]
@@ -34,12 +39,9 @@ export async function sendInvoiceEmail({
     year: 'numeric'
   })
 
-  const msg = {
+  const response = await getResendClient().emails.send({
+    from: `${businessName} <${fromEmail}>`,
     to,
-    from: {
-      email: process.env.SENDGRID_FROM_EMAIL || 'invoices@syntyxlabs.com',
-      name: businessName
-    },
     replyTo,
     subject: `Invoice ${invoiceNumber} from ${businessName}`,
     html: `
@@ -90,15 +92,13 @@ export async function sendInvoiceEmail({
     `,
     attachments: [
       {
-        content: pdfBuffer.toString('base64'),
+        content: pdfBuffer,
         filename: `Invoice-${invoiceNumber}.pdf`,
-        type: 'application/pdf',
-        disposition: 'attachment' as const
+        contentType: 'application/pdf'
       }
     ]
-  }
+  })
 
-  const response = await sgMail.send(msg)
   return response
 }
 
@@ -132,12 +132,9 @@ export async function sendReminderEmail({
     ? `Reminder: Invoice ${invoiceNumber} is ${daysOverdue} days overdue`
     : `Reminder: Invoice ${invoiceNumber} from ${businessName}`
 
-  const msg = {
+  const response = await getResendClient().emails.send({
+    from: `${businessName} <${fromEmail}>`,
     to,
-    from: {
-      email: process.env.SENDGRID_FROM_EMAIL || 'invoices@syntyxlabs.com',
-      name: businessName
-    },
     replyTo,
     subject,
     html: `
@@ -178,13 +175,12 @@ export async function sendReminderEmail({
     `,
     attachments: [
       {
-        content: pdfBuffer.toString('base64'),
+        content: pdfBuffer,
         filename: `Invoice-${invoiceNumber}.pdf`,
-        type: 'application/pdf',
-        disposition: 'attachment' as const
+        contentType: 'application/pdf'
       }
     ]
-  }
+  })
 
-  return sgMail.send(msg)
+  return response
 }
