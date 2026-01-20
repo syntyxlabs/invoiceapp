@@ -1,18 +1,27 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { InvoiceEditor } from '@/components/invoice/InvoiceEditor'
+import { SendConfirmationDialog } from '@/components/invoice/SendConfirmationDialog'
 import { useInvoiceDraftStore } from '@/stores/invoice-draft-store'
+import { useBusinessProfile } from '@/hooks/useBusinessProfile'
 import type { InvoiceDraft } from '@/lib/openai/schemas'
 
 export default function EditInvoicePage() {
   const router = useRouter()
   const { draft, draftId, photos, originalTranscript, clearDraft, setPhotos } = useInvoiceDraftStore()
+  const { profiles } = useBusinessProfile()
+
+  const [showSendDialog, setShowSendDialog] = useState(false)
+  const [invoiceToSend, setInvoiceToSend] = useState<InvoiceDraft | null>(null)
+
+  // Get the default business profile
+  const defaultProfile = profiles.find(p => p.is_default) || profiles[0]
 
   // Redirect to new invoice page if no draft exists
   useEffect(() => {
@@ -27,6 +36,21 @@ export default function EditInvoicePage() {
     }
   }, [draft, router])
 
+  // Calculate totals for send dialog
+  const totals = useMemo(() => {
+    if (!invoiceToSend) return { subtotal: 0, gstAmount: 0, total: 0 }
+
+    const subtotal = invoiceToSend.line_items.reduce((sum, item) => {
+      if (item.unit_price === null) return sum
+      return sum + (item.quantity * item.unit_price)
+    }, 0)
+
+    const gstAmount = invoiceToSend.invoice.gst_enabled ? subtotal * 0.10 : 0
+    const total = subtotal + gstAmount
+
+    return { subtotal, gstAmount, total }
+  }, [invoiceToSend])
+
   const handleSave = (invoice: InvoiceDraft) => {
     // TODO: Save to database in Phase 7
     console.log('Saving draft:', invoice)
@@ -34,9 +58,88 @@ export default function EditInvoicePage() {
   }
 
   const handleSend = (invoice: InvoiceDraft) => {
-    // TODO: Generate PDF and send email in Phase 6
-    console.log('Sending invoice:', invoice)
-    alert('Send functionality coming in Phase 6!')
+    // Validate we have customer emails
+    if (!invoice.customer.emails?.length) {
+      alert('Please add at least one customer email address before sending.')
+      return
+    }
+
+    // Validate we have a business profile
+    if (!defaultProfile) {
+      alert('Please create a business profile before sending invoices.')
+      router.push('/profiles/new')
+      return
+    }
+
+    setInvoiceToSend(invoice)
+    setShowSendDialog(true)
+  }
+
+  const handleConfirmSend = async () => {
+    if (!invoiceToSend || !defaultProfile) return
+
+    // Generate invoice number if not set
+    const invoiceNumber = invoiceToSend.invoice.invoice_number ||
+      `${defaultProfile.sequence?.prefix || 'INV'}-${Date.now().toString().slice(-6)}`
+
+    // Build the invoice data for the API
+    const invoiceData = {
+      invoice_number: invoiceNumber,
+      invoice_date: invoiceToSend.invoice.invoice_date,
+      due_date: invoiceToSend.invoice.due_date,
+      customer_name: invoiceToSend.customer.name,
+      customer_emails: invoiceToSend.customer.emails || [],
+      job_address: invoiceToSend.invoice.job_address || null,
+      line_items: invoiceToSend.line_items.map(item => ({
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit || 'ea',
+        unit_price: item.unit_price || 0,
+        line_total: (item.quantity * (item.unit_price || 0)),
+      })),
+      subtotal: totals.subtotal,
+      gst_amount: totals.gstAmount,
+      total: totals.total,
+      gst_enabled: invoiceToSend.invoice.gst_enabled,
+      notes: invoiceToSend.notes || null,
+    }
+
+    const businessProfileData = {
+      trading_name: defaultProfile.trading_name,
+      business_name: defaultProfile.business_name,
+      abn: defaultProfile.abn,
+      address: defaultProfile.address,
+      bank_bsb: defaultProfile.bank_bsb,
+      bank_account: defaultProfile.bank_account,
+      payid: defaultProfile.payid,
+      payment_link: defaultProfile.payment_link,
+      default_footer_note: defaultProfile.default_footer_note,
+    }
+
+    const response = await fetch('/api/email/send-invoice', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        invoice: invoiceData,
+        businessProfile: businessProfileData,
+        photos: photos.map(p => ({ url: p.url, filename: p.filename })),
+      }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to send invoice')
+    }
+
+    // Clear draft after successful send
+    clearDraft()
+
+    // Redirect to invoices list after dialog closes
+    setTimeout(() => {
+      router.push('/invoices')
+    }, 2500)
   }
 
   if (!draft) {
@@ -105,6 +208,18 @@ export default function EditInvoicePage() {
         onSave={handleSave}
         onSend={handleSend}
       />
+
+      {/* Send Confirmation Dialog */}
+      {invoiceToSend && (
+        <SendConfirmationDialog
+          open={showSendDialog}
+          onOpenChange={setShowSendDialog}
+          invoiceNumber={invoiceToSend.invoice.invoice_number || `${defaultProfile?.sequence?.prefix || 'INV'}-${Date.now().toString().slice(-6)}`}
+          customerEmails={invoiceToSend.customer.emails || []}
+          total={totals.total}
+          onConfirm={handleConfirmSend}
+        />
+      )}
     </div>
   )
 }

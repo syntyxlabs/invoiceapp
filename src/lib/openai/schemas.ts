@@ -66,6 +66,7 @@ export type InvoiceDraft = {
     abn?: string | null
   }
   invoice: {
+    invoice_number?: string
     invoice_date: string
     due_date: string
     job_address?: string | null

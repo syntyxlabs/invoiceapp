@@ -41,3 +41,4 @@ playwright/.cache/
 # Misc
 *.tsbuildinfo
 next-env.d.ts
+.vercel
