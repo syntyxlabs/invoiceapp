@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Dialog,
   DialogContent,
@@ -29,9 +30,29 @@ export function SendConfirmationDialog({
   total,
   onConfirm
 }: SendConfirmationDialogProps) {
+  const router = useRouter()
   const [isSending, setIsSending] = useState(false)
   const [isSent, setIsSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [countdown, setCountdown] = useState(3)
+
+  // Auto-redirect countdown after success
+  useEffect(() => {
+    if (!isSent) return
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          router.push('/invoices')
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [isSent, router])
 
   const handleSend = async () => {
     setIsSending(true)
@@ -40,36 +61,33 @@ export function SendConfirmationDialog({
     try {
       await onConfirm()
       setIsSent(true)
-
-      // Auto close after success
-      setTimeout(() => {
-        onOpenChange(false)
-        setIsSent(false)
-      }, 2000)
-
+      setIsSending(false)
+      setCountdown(3)
     } catch {
       setError('Failed to send invoice. Please try again.')
-    } finally {
       setIsSending(false)
     }
   }
 
   const handleOpenChange = (newOpen: boolean) => {
-    if (!isSending) {
+    if (!isSending && !isSent) {
       onOpenChange(newOpen)
       if (!newOpen) {
         setError(null)
-        setIsSent(false)
       }
     }
   }
 
+  const handleGoToInvoices = () => {
+    router.push('/invoices')
+  }
+
   if (isSent) {
     return (
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={open} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md [&>button]:hidden">
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="rounded-full bg-green-100 p-4 mb-4">
+            <div className="rounded-full bg-green-100 p-4 mb-4 animate-in zoom-in duration-300">
               <CheckCircle2 className="h-12 w-12 text-green-600" />
             </div>
             <h2 className="text-2xl font-bold text-green-600 mb-2">
@@ -78,14 +96,14 @@ export function SendConfirmationDialog({
             <p className="text-muted-foreground mb-1">
               Invoice <span className="font-semibold text-foreground">{invoiceNumber}</span> has been sent to:
             </p>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground mb-6">
               {customerEmails.map((email, i) => (
                 <p key={i}>{email}</p>
               ))}
             </div>
-            <p className="text-sm text-muted-foreground mt-4">
-              Redirecting to invoices...
-            </p>
+            <Button onClick={handleGoToInvoices} className="w-full">
+              View Invoices ({countdown}s)
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

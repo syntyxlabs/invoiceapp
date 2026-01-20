@@ -165,10 +165,7 @@ export default function EditInvoicePage() {
       // Clear draft after successful send
       clearDraft()
 
-      // Redirect to invoices list after dialog closes
-      setTimeout(() => {
-        router.push('/invoices')
-      }, 2500)
+      // Dialog will handle the redirect
     } catch (error) {
       console.error('Send error:', error)
       throw error
