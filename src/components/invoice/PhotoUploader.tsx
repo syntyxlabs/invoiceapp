@@ -75,7 +75,7 @@ export function PhotoUploader({
       // Upload to Supabase Storage
       setUploadProgress(60)
       const { error: uploadError } = await supabase.storage
-        .from('invoice-photos')
+        .from('inv-photos')
         .upload(storagePath, compressedBlob, {
           cacheControl: '3600',
           upsert: false,
@@ -87,7 +87,7 @@ export function PhotoUploader({
       // Get signed URL for preview
       setUploadProgress(80)
       const { data: signedUrlData } = await supabase.storage
-        .from('invoice-photos')
+        .from('inv-photos')
         .createSignedUrl(storagePath, 3600) // 1 hour
 
       // Create photo record
@@ -125,7 +125,7 @@ export function PhotoUploader({
     try {
       // Delete from storage
       await supabase.storage
-        .from('invoice-photos')
+        .from('inv-photos')
         .remove([photo.storage_path])
 
       // Update state
