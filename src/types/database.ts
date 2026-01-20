@@ -117,23 +117,24 @@ export interface Database {
           id: string
           user_id: string
           business_profile_id: string | null
-          client_id: string | null
+          customer_id: string | null
           invoice_number: string
-          status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
-          issue_date: string
+          status: 'draft' | 'sent' | 'paid' | 'overdue' | 'void'
+          invoice_date: string
           due_date: string
           subtotal: number
-          tax_rate: number
-          tax_amount: number
+          gst_amount: number
           total: number
+          gst_enabled: boolean
           notes: string | null
-          terms: string | null
-          voice_transcript: string | null
-          customer_name: string | null
-          customer_emails: string[] | null
-          customer_abn: string | null
           job_address: string | null
-          prices_include_gst: boolean
+          customer_name: string
+          customer_emails: string[]
+          original_voice_transcript: string | null
+          ai_draft_json: Record<string, unknown> | null
+          sent_at: string | null
+          paid_at: string | null
+          voided_at: string | null
           created_at: string
           updated_at: string
         }
@@ -141,23 +142,24 @@ export interface Database {
           id?: string
           user_id: string
           business_profile_id?: string | null
-          client_id?: string | null
+          customer_id?: string | null
           invoice_number: string
-          status?: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
-          issue_date?: string
+          status?: 'draft' | 'sent' | 'paid' | 'overdue' | 'void'
+          invoice_date?: string
           due_date: string
           subtotal?: number
-          tax_rate?: number
-          tax_amount?: number
+          gst_amount?: number
           total?: number
+          gst_enabled?: boolean
           notes?: string | null
-          terms?: string | null
-          voice_transcript?: string | null
-          customer_name?: string | null
-          customer_emails?: string[] | null
-          customer_abn?: string | null
           job_address?: string | null
-          prices_include_gst?: boolean
+          customer_name: string
+          customer_emails: string[]
+          original_voice_transcript?: string | null
+          ai_draft_json?: Record<string, unknown> | null
+          sent_at?: string | null
+          paid_at?: string | null
+          voided_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -165,23 +167,24 @@ export interface Database {
           id?: string
           user_id?: string
           business_profile_id?: string | null
-          client_id?: string | null
+          customer_id?: string | null
           invoice_number?: string
-          status?: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
-          issue_date?: string
+          status?: 'draft' | 'sent' | 'paid' | 'overdue' | 'void'
+          invoice_date?: string
           due_date?: string
           subtotal?: number
-          tax_rate?: number
-          tax_amount?: number
+          gst_amount?: number
           total?: number
+          gst_enabled?: boolean
           notes?: string | null
-          terms?: string | null
-          voice_transcript?: string | null
-          customer_name?: string | null
-          customer_emails?: string[] | null
-          customer_abn?: string | null
           job_address?: string | null
-          prices_include_gst?: boolean
+          customer_name?: string
+          customer_emails?: string[]
+          original_voice_transcript?: string | null
+          ai_draft_json?: Record<string, unknown> | null
+          sent_at?: string | null
+          paid_at?: string | null
+          voided_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -456,8 +459,9 @@ export interface Database {
           invoice_id: string
           description: string
           quantity: number
+          unit: string | null
           unit_price: number
-          amount: number
+          line_total: number
           sort_order: number
           created_at: string
         }
@@ -466,8 +470,9 @@ export interface Database {
           invoice_id: string
           description: string
           quantity?: number
-          unit_price?: number
-          amount?: number
+          unit?: string | null
+          unit_price: number
+          line_total: number
           sort_order?: number
           created_at?: string
         }
@@ -476,8 +481,9 @@ export interface Database {
           invoice_id?: string
           description?: string
           quantity?: number
+          unit?: string | null
           unit_price?: number
-          amount?: number
+          line_total?: number
           sort_order?: number
           created_at?: string
         }
@@ -486,7 +492,7 @@ export interface Database {
             foreignKeyName: 'inv_line_items_invoice_id_fkey'
             columns: ['invoice_id']
             isOneToOne: false
-            referencedRelation: 'invoices'
+            referencedRelation: 'inv_invoices'
             referencedColumns: ['id']
           }
         ]

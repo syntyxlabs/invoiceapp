@@ -28,10 +28,10 @@ import Link from 'next/link'
 interface Invoice {
   id: string
   invoice_number: string
-  issue_date: string
+  invoice_date: string
   due_date: string
   total: number
-  status: 'draft' | 'sent' | 'overdue' | 'paid' | 'cancelled'
+  status: 'draft' | 'sent' | 'overdue' | 'paid' | 'void'
   business_profile?: {
     trading_name: string
   }
@@ -77,12 +77,13 @@ export function InvoiceCard({ invoice, onStatusChange }: InvoiceCardProps) {
     await supabase
       .from('inv_invoices')
       .update({
-        status: 'cancelled',
+        status: 'void',
+        voided_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
       .eq('id', invoice.id)
 
-    onStatusChange(invoice.id, 'cancelled')
+    onStatusChange(invoice.id, 'void')
     setShowCancelDialog(false)
     setIsLoading(false)
   }
@@ -113,7 +114,7 @@ export function InvoiceCard({ invoice, onStatusChange }: InvoiceCardProps) {
 
               <p className="font-medium">{invoice.business_profile?.trading_name || 'Customer'}</p>
               <p className="text-sm text-muted-foreground">
-                {formatDate(invoice.issue_date)}
+                {formatDate(invoice.invoice_date)}
                 {invoice.status === 'sent' && ` - Due ${formatDate(invoice.due_date)}`}
               </p>
             </div>
@@ -171,7 +172,7 @@ export function InvoiceCard({ invoice, onStatusChange }: InvoiceCardProps) {
                   </>
                 )}
 
-                {invoice.status !== 'cancelled' && invoice.status !== 'paid' && (
+                {invoice.status !== 'void' && invoice.status !== 'paid' && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -195,7 +196,7 @@ export function InvoiceCard({ invoice, onStatusChange }: InvoiceCardProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Invoice?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will mark invoice {invoice.invoice_number} as cancelled.
+              This will mark invoice {invoice.invoice_number} as void (cancelled).
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

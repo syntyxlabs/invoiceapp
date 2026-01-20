@@ -127,7 +127,7 @@ async function sendFromDatabase(
   const pdfData: InvoicePDFProps = {
     invoice: {
       invoice_number: invoiceData.invoice_number,
-      invoice_date: invoiceData.issue_date,
+      invoice_date: invoiceData.invoice_date,
       due_date: invoiceData.due_date,
       customer_name: invoiceData.customer_name || 'Customer',
       customer_emails: invoiceData.customer_emails || [],
@@ -135,14 +135,14 @@ async function sendFromDatabase(
       line_items: (lineItems || []).map((item) => ({
         description: item.description,
         quantity: item.quantity,
-        unit: 'ea',
+        unit: item.unit || 'ea',
         unit_price: item.unit_price,
-        line_total: item.amount,
+        line_total: item.line_total,
       })),
       subtotal: invoiceData.subtotal,
-      gst_amount: invoiceData.tax_amount,
+      gst_amount: invoiceData.gst_amount,
       total: invoiceData.total,
-      gst_enabled: invoiceData.tax_rate > 0,
+      gst_enabled: invoiceData.gst_enabled ?? true,
       notes: invoiceData.notes,
     },
     businessProfile: {

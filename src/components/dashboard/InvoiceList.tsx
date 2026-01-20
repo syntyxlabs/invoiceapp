@@ -8,10 +8,10 @@ import { Loader2 } from 'lucide-react'
 interface Invoice {
   id: string
   invoice_number: string
-  issue_date: string
+  invoice_date: string
   due_date: string
   total: number
-  status: 'draft' | 'sent' | 'overdue' | 'paid' | 'cancelled'
+  status: 'draft' | 'sent' | 'overdue' | 'paid' | 'void'
   business_profile?: {
     trading_name: string
   }
@@ -44,7 +44,7 @@ export function InvoiceList({
         .select(`
           id,
           invoice_number,
-          issue_date,
+          invoice_date,
           due_date,
           total,
           status,
@@ -53,7 +53,7 @@ export function InvoiceList({
 
       // Status filter
       if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter as 'draft' | 'sent' | 'overdue' | 'paid' | 'cancelled')
+        query = query.eq('status', statusFilter as 'draft' | 'sent' | 'overdue' | 'paid' | 'void')
       }
 
       // Search filter
@@ -63,7 +63,7 @@ export function InvoiceList({
 
       // Sort
       const sortColumn = sortBy === 'date'
-        ? 'issue_date'
+        ? 'invoice_date'
         : sortBy === 'amount'
           ? 'total'
           : 'invoice_number'

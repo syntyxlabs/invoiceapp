@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 
-type Status = 'draft' | 'sent' | 'overdue' | 'paid' | 'cancelled'
+type Status = 'draft' | 'sent' | 'overdue' | 'paid' | 'void'
 
 interface StatusBadgeProps {
   status: Status
@@ -28,10 +28,10 @@ const STATUS_STYLES: Record<Status, { bg: string; text: string; label: string }>
     text: 'text-green-700',
     label: 'Paid'
   },
-  cancelled: {
+  void: {
     bg: 'bg-gray-100',
     text: 'text-gray-500',
-    label: 'Cancelled'
+    label: 'Void'
   }
 }
 
