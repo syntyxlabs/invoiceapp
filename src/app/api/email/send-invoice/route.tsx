@@ -150,6 +150,7 @@ async function sendFromDatabase(
       business_name: invoiceData.business_profile?.business_name,
       abn: invoiceData.business_profile?.abn,
       address: invoiceData.business_profile?.address,
+      logo_url: invoiceData.business_profile?.logo_url,
       bank_bsb: invoiceData.business_profile?.bank_bsb,
       bank_account: invoiceData.business_profile?.bank_account,
       payid: invoiceData.business_profile?.payid,

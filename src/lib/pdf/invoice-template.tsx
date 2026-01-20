@@ -40,17 +40,18 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
-    maxWidth: '55%',
+    maxWidth: '60%',
   },
   logo: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     objectFit: 'contain',
   },
   businessInfo: {
     flex: 1,
+    minWidth: 120,
   },
   businessName: {
     fontSize: 18,

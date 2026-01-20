@@ -119,68 +119,60 @@ export default function EditInvoicePage() {
   const handleConfirmSend = async () => {
     if (!invoiceToSend || !defaultProfile) return
 
-    // Generate invoice number if not set
-    const invoiceNumber = invoiceToSend.invoice.invoice_number ||
-      `${defaultProfile.sequence?.prefix || 'INV'}-${Date.now().toString().slice(-6)}`
+    try {
+      // Step 1: Save invoice to database first
+      const saveResponse = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          draft: invoiceToSend,
+          draftId: draftId,
+          photos: photos.map(p => ({
+            id: p.id,
+            storage_path: p.storage_path,
+            filename: p.filename,
+          })),
+          businessProfileId: defaultProfile.id,
+        }),
+      })
 
-    // Build the invoice data for the API
-    const invoiceData = {
-      invoice_number: invoiceNumber,
-      invoice_date: invoiceToSend.invoice.invoice_date,
-      due_date: invoiceToSend.invoice.due_date,
-      customer_name: invoiceToSend.customer.name,
-      customer_emails: invoiceToSend.customer.emails || [],
-      job_address: invoiceToSend.invoice.job_address || null,
-      line_items: invoiceToSend.line_items.map(item => ({
-        description: item.description,
-        quantity: item.quantity,
-        unit: item.unit || 'ea',
-        unit_price: item.unit_price || 0,
-        line_total: (item.quantity * (item.unit_price || 0)),
-      })),
-      subtotal: totals.subtotal,
-      gst_amount: totals.gstAmount,
-      total: totals.total,
-      gst_enabled: invoiceToSend.invoice.gst_enabled,
-      notes: invoiceToSend.notes || null,
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json()
+        throw new Error(errorData.error || 'Failed to save invoice')
+      }
+
+      const saveResult = await saveResponse.json()
+      const invoiceId = saveResult.invoiceId
+
+      // Step 2: Send email using the saved invoice ID
+      const sendResponse = await fetch('/api/email/send-invoice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          invoiceId: invoiceId,
+        }),
+      })
+
+      if (!sendResponse.ok) {
+        const errorData = await sendResponse.json()
+        throw new Error(errorData.error || 'Failed to send invoice')
+      }
+
+      // Clear draft after successful send
+      clearDraft()
+
+      // Redirect to invoices list after dialog closes
+      setTimeout(() => {
+        router.push('/invoices')
+      }, 2500)
+    } catch (error) {
+      console.error('Send error:', error)
+      throw error
     }
-
-    const businessProfileData = {
-      trading_name: defaultProfile.trading_name,
-      business_name: defaultProfile.business_name,
-      abn: defaultProfile.abn,
-      address: defaultProfile.address,
-      bank_bsb: defaultProfile.bank_bsb,
-      bank_account: defaultProfile.bank_account,
-      payid: defaultProfile.payid,
-      payment_link: defaultProfile.payment_link,
-      default_footer_note: defaultProfile.default_footer_note,
-    }
-
-    const response = await fetch('/api/email/send-invoice', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        invoice: invoiceData,
-        businessProfile: businessProfileData,
-        photos: photos.map(p => ({ url: p.url, filename: p.filename })),
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to send invoice')
-    }
-
-    // Clear draft after successful send
-    clearDraft()
-
-    // Redirect to invoices list after dialog closes
-    setTimeout(() => {
-      router.push('/invoices')
-    }, 2500)
   }
 
   if (!draft) {

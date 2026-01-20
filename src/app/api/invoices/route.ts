@@ -55,18 +55,18 @@ export async function POST(request: NextRequest) {
         business_profile_id: businessProfileId,
         invoice_number: invoiceNumber,
         status: 'draft',
-        invoice_date: draft.invoice.invoice_date,
+        issue_date: draft.invoice.invoice_date,
         due_date: draft.invoice.due_date,
         customer_name: draft.customer.name,
         customer_emails: draft.customer.emails,
         job_address: draft.invoice.job_address,
         subtotal,
-        gst_amount: taxAmount,
-        gst_enabled: draft.invoice.gst_enabled,
+        tax_rate: taxRate,
+        tax_amount: taxAmount,
         total,
         notes: draft.notes,
-        original_voice_transcript: null,
-        ai_draft_json: draft,
+        voice_transcript: null,
+        prices_include_gst: false,
       })
       .select()
       .single()
