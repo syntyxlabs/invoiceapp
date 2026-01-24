@@ -3,6 +3,7 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { InvoicePDF, type InvoicePDFProps } from '@/lib/pdf/invoice-template'
 import { sendReminderEmail } from '@/lib/email/resend'
 import { createClient } from '@/lib/supabase/server'
+import { processBusinessProfileLogo } from '@/lib/pdf/image-utils'
 
 // Helper function to create PDF element
 function createPdfElement(props: InvoicePDFProps) {
@@ -121,6 +122,9 @@ export async function POST(request: NextRequest) {
       },
       photos: [], // Photos will be added when invoice_photos table exists
     }
+
+    // Convert logo URL to base64 for reliable PDF rendering
+    pdfData.businessProfile = await processBusinessProfileLogo(pdfData.businessProfile)
 
     // Create PDF element
     const pdfElement = createPdfElement(pdfData)

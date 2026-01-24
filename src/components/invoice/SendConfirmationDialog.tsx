@@ -20,6 +20,8 @@ interface SendConfirmationDialogProps {
   customerEmails: string[]
   total: number
   onConfirm: () => Promise<void>
+  onComplete?: () => void
+  showSuccessState?: boolean
 }
 
 export function SendConfirmationDialog({
@@ -28,11 +30,13 @@ export function SendConfirmationDialog({
   invoiceNumber,
   customerEmails,
   total,
-  onConfirm
+  onConfirm,
+  onComplete,
+  showSuccessState = false
 }: SendConfirmationDialogProps) {
   const router = useRouter()
   const [isSending, setIsSending] = useState(false)
-  const [isSent, setIsSent] = useState(false)
+  const [isSent, setIsSent] = useState(showSuccessState)
   const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState(3)
 
@@ -44,6 +48,8 @@ export function SendConfirmationDialog({
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
+          // Clear draft before redirecting
+          onComplete?.()
           router.push('/invoices')
           return 0
         }
@@ -52,7 +58,7 @@ export function SendConfirmationDialog({
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [isSent, router])
+  }, [isSent, router, onComplete])
 
   const handleSend = async () => {
     setIsSending(true)
@@ -79,6 +85,8 @@ export function SendConfirmationDialog({
   }
 
   const handleGoToInvoices = () => {
+    // Clear draft before redirecting
+    onComplete?.()
     router.push('/invoices')
   }
 

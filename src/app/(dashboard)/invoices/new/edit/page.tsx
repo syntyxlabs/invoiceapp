@@ -20,22 +20,23 @@ export default function EditInvoicePage() {
   const [showSendDialog, setShowSendDialog] = useState(false)
   const [invoiceToSend, setInvoiceToSend] = useState<InvoiceDraft | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [sendSuccess, setSendSuccess] = useState(false)
 
   // Get the default business profile
   const defaultProfile = profiles.find(p => p.is_default) || profiles[0]
 
-  // Redirect to new invoice page if no draft exists
+  // Redirect to new invoice page if no draft exists (but not during send success)
   useEffect(() => {
-    if (!draft) {
+    if (!draft && !sendSuccess) {
       // Small delay to allow hydration
       const timer = setTimeout(() => {
-        if (!useInvoiceDraftStore.getState().draft) {
+        if (!useInvoiceDraftStore.getState().draft && !sendSuccess) {
           router.push('/invoices/new')
         }
       }, 100)
       return () => clearTimeout(timer)
     }
-  }, [draft, router])
+  }, [draft, router, sendSuccess])
 
   // Calculate totals for send dialog
   const totals = useMemo(() => {
@@ -162,14 +163,30 @@ export default function EditInvoicePage() {
         throw new Error(errorData.error || 'Failed to send invoice')
       }
 
-      // Clear draft after successful send
-      clearDraft()
+      // Mark send as successful - dialog will show success UI
+      setSendSuccess(true)
 
-      // Dialog will handle the redirect
+      // Dialog will handle clearing draft and redirect
     } catch (error) {
       console.error('Send error:', error)
       throw error
     }
+  }
+
+  // Show success dialog even after draft is cleared
+  if (sendSuccess && invoiceToSend) {
+    return (
+      <SendConfirmationDialog
+        open={true}
+        onOpenChange={() => {}}
+        invoiceNumber={invoiceToSend.invoice.invoice_number || `${defaultProfile?.sequence?.prefix || 'INV'}-${Date.now().toString().slice(-6)}`}
+        customerEmails={invoiceToSend.customer.emails || []}
+        total={totals.total}
+        onConfirm={handleConfirmSend}
+        onComplete={clearDraft}
+        showSuccessState={true}
+      />
+    )
   }
 
   if (!draft) {
@@ -248,6 +265,7 @@ export default function EditInvoicePage() {
           customerEmails={invoiceToSend.customer.emails || []}
           total={totals.total}
           onConfirm={handleConfirmSend}
+          onComplete={clearDraft}
         />
       )}
     </div>
