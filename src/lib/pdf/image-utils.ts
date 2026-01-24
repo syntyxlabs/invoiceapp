@@ -11,10 +11,11 @@ export async function imageUrlToBase64(url: string | null | undefined): Promise<
   if (!url) return null
 
   try {
+    console.log(`[image-utils] Fetching image from: ${url.substring(0, 100)}...`)
     const response = await fetch(url)
 
     if (!response.ok) {
-      console.error(`Failed to fetch image: ${response.status} ${response.statusText}`)
+      console.error(`[image-utils] Failed to fetch image: ${response.status} ${response.statusText}`)
       return null
     }
 
@@ -22,9 +23,10 @@ export async function imageUrlToBase64(url: string | null | undefined): Promise<
     const arrayBuffer = await response.arrayBuffer()
     const base64 = Buffer.from(arrayBuffer).toString('base64')
 
+    console.log(`[image-utils] Successfully converted image (${contentType}, ${arrayBuffer.byteLength} bytes)`)
     return `data:${contentType};base64,${base64}`
   } catch (error) {
-    console.error('Error converting image to base64:', error)
+    console.error('[image-utils] Error converting image to base64:', error)
     return null
   }
 }
@@ -36,10 +38,20 @@ export async function imageUrlToBase64(url: string | null | undefined): Promise<
 export async function processBusinessProfileLogo<T extends { logo_url?: string | null }>(
   profile: T
 ): Promise<T> {
-  if (!profile.logo_url) return profile
+  if (!profile.logo_url) {
+    console.log('[image-utils] No logo_url in business profile')
+    return profile
+  }
 
+  console.log('[image-utils] Processing business profile logo...')
   const base64Logo = await imageUrlToBase64(profile.logo_url)
 
+  if (!base64Logo) {
+    console.error('[image-utils] Failed to convert logo to base64, keeping original URL')
+    return profile
+  }
+
+  console.log('[image-utils] Logo successfully converted to base64')
   return {
     ...profile,
     logo_url: base64Logo,

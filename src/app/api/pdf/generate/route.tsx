@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { InvoicePDF, type InvoicePDFProps } from '@/lib/pdf/invoice-template'
 import { createClient } from '@/lib/supabase/server'
-import { processBusinessProfileLogo } from '@/lib/pdf/image-utils'
+import { processBusinessProfileLogo, imageUrlToBase64 } from '@/lib/pdf/image-utils'
 
 // Helper function to create PDF element
 function createPdfElement(props: InvoicePDFProps) {
@@ -87,6 +87,13 @@ async function generateFromDatabase(invoiceId: string) {
     .eq('invoice_id', invoiceId)
     .order('sort_order', { ascending: true })
 
+  // Fetch photos
+  const { data: photos } = await supabase
+    .from('inv_photos')
+    .select('*')
+    .eq('invoice_id', invoiceId)
+    .order('sort_order', { ascending: true })
+
   // Cast invoice to include optional fields that may exist in the actual database
   // but aren't in the TypeScript types yet
   const invoiceData = invoice as typeof invoice & {
@@ -129,11 +136,31 @@ async function generateFromDatabase(invoiceId: string) {
       payment_link: invoiceData.business_profile?.payment_link,
       default_footer_note: invoiceData.business_profile?.default_footer_note,
     },
-    photos: [], // Photos will be added when invoice_photos table exists
+    photos: [],
   }
 
   // Convert logo URL to base64 for reliable PDF rendering
   pdfData.businessProfile = await processBusinessProfileLogo(pdfData.businessProfile)
+
+  // Process photos - get signed URLs and convert to base64
+  if (photos && photos.length > 0) {
+    const processedPhotos = await Promise.all(
+      photos.map(async (photo) => {
+        const { data: signedUrlData } = await supabase.storage
+          .from('inv-photos')
+          .createSignedUrl(photo.storage_path, 3600)
+
+        if (signedUrlData?.signedUrl) {
+          const base64Url = await imageUrlToBase64(signedUrlData.signedUrl)
+          if (base64Url) {
+            return { url: base64Url }
+          }
+        }
+        return null
+      })
+    )
+    pdfData.photos = processedPhotos.filter((p): p is { url: string } => p !== null)
+  }
 
   // Create PDF element
   const pdfElement = createPdfElement(pdfData)

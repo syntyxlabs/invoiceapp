@@ -541,6 +541,47 @@ export interface Database {
           }
         ]
       }
+      inv_photos: {
+        Row: {
+          id: string
+          invoice_id: string
+          storage_path: string
+          filename: string | null
+          mime_type: string | null
+          size_bytes: number | null
+          sort_order: number | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          invoice_id: string
+          storage_path: string
+          filename?: string | null
+          mime_type?: string | null
+          size_bytes?: number | null
+          sort_order?: number | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          invoice_id?: string
+          storage_path?: string
+          filename?: string | null
+          mime_type?: string | null
+          size_bytes?: number | null
+          sort_order?: number | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'inv_photos_invoice_id_fkey'
+            columns: ['invoice_id']
+            isOneToOne: false
+            referencedRelation: 'inv_invoices'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -583,3 +624,8 @@ export interface BusinessProfileWithSequence extends BusinessProfile {
 }
 
 export type InvoiceStatus = Database['public']['Enums']['invoice_status']
+
+// Photo types
+export type InvoicePhoto = Tables<'inv_photos'>
+export type InvoicePhotoInsert = InsertTables<'inv_photos'>
+export type InvoicePhotoUpdate = UpdateTables<'inv_photos'>

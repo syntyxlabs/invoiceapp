@@ -100,6 +100,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Save photos to inv_photos table
+    if (body.photos && body.photos.length > 0) {
+      const photosToInsert = body.photos.map((photo, index) => ({
+        invoice_id: invoice.id,
+        storage_path: photo.storage_path,
+        filename: photo.filename,
+        sort_order: index,
+      }))
+
+      const { error: photosError } = await supabase
+        .from('inv_photos')
+        .insert(photosToInsert)
+
+      if (photosError) {
+        console.error('Photos creation error:', photosError)
+      }
+    }
+
     // Update sequence number
     if (sequence) {
       await supabase
