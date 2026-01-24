@@ -12,21 +12,50 @@ export async function imageUrlToBase64(url: string | null | undefined): Promise<
 
   try {
     console.log(`[image-utils] Fetching image from: ${url.substring(0, 100)}...`)
-    const response = await fetch(url)
+
+    // Add timeout to prevent hanging
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'image/*',
+      }
+    })
+    clearTimeout(timeoutId)
 
     if (!response.ok) {
       console.error(`[image-utils] Failed to fetch image: ${response.status} ${response.statusText}`)
       return null
     }
 
-    const contentType = response.headers.get('content-type') || 'image/png'
+    const contentType = response.headers.get('content-type') || 'image/jpeg'
     const arrayBuffer = await response.arrayBuffer()
+
+    if (arrayBuffer.byteLength === 0) {
+      console.error('[image-utils] Received empty image data')
+      return null
+    }
+
     const base64 = Buffer.from(arrayBuffer).toString('base64')
 
-    console.log(`[image-utils] Successfully converted image (${contentType}, ${arrayBuffer.byteLength} bytes)`)
-    return `data:${contentType};base64,${base64}`
+    // Validate base64 string
+    if (!base64 || base64.length === 0) {
+      console.error('[image-utils] Base64 conversion resulted in empty string')
+      return null
+    }
+
+    const dataUrl = `data:${contentType};base64,${base64}`
+    console.log(`[image-utils] Successfully converted image (${contentType}, ${arrayBuffer.byteLength} bytes, base64: ${base64.length} chars)`)
+
+    return dataUrl
   } catch (error) {
-    console.error('[image-utils] Error converting image to base64:', error)
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('[image-utils] Image fetch timed out')
+    } else {
+      console.error('[image-utils] Error converting image to base64:', error)
+    }
     return null
   }
 }
