@@ -6,12 +6,14 @@ import { LineItemTable } from './LineItemTable'
 import { InvoiceTotals } from './InvoiceTotals'
 import { CorrectionInput } from './CorrectionInput'
 import { PhotoUploader, type Photo } from './PhotoUploader'
+import { PDFPreviewDialog } from './PDFPreviewDialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import type { InvoiceDraft } from '@/lib/openai/schemas'
+import type { BusinessProfileWithSequence } from '@/types/database'
 
 interface InvoiceEditorProps {
   initialDraft: InvoiceDraft
@@ -20,9 +22,10 @@ interface InvoiceEditorProps {
   onPhotosChange: (photos: Photo[]) => void
   onSave: (invoice: InvoiceDraft) => void
   onSend: (invoice: InvoiceDraft) => void
+  businessProfile?: BusinessProfileWithSequence | null
 }
 
-export function InvoiceEditor({ initialDraft, draftId, photos, onPhotosChange, onSave, onSend }: InvoiceEditorProps) {
+export function InvoiceEditor({ initialDraft, draftId, photos, onPhotosChange, onSave, onSend, businessProfile }: InvoiceEditorProps) {
   const [invoice, setInvoice] = useState<InvoiceDraft>(initialDraft)
   const [changeSummary, setChangeSummary] = useState<string[]>([])
   const [isDirty, setIsDirty] = useState(false)
@@ -215,6 +218,11 @@ export function InvoiceEditor({ initialDraft, draftId, photos, onPhotosChange, o
 
       {/* Actions */}
       <div className="flex gap-4">
+        <PDFPreviewDialog
+          invoice={invoice}
+          businessProfile={businessProfile || null}
+          photos={photos}
+        />
         <Button
           variant="outline"
           onClick={handleSave}

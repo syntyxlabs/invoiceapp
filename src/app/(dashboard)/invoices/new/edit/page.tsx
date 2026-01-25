@@ -254,6 +254,7 @@ export default function EditInvoicePage() {
         onPhotosChange={setPhotos}
         onSave={handleSave}
         onSend={handleSend}
+        businessProfile={defaultProfile}
       />
 
       {/* Send Confirmation Dialog */}

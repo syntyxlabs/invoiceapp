@@ -47,7 +47,15 @@ export async function imageUrlToBase64(url: string | null | undefined): Promise<
     }
 
     const dataUrl = `data:${contentType};base64,${base64}`
+
+    // Validate the data URL format
+    if (!dataUrl.startsWith('data:image/') || !dataUrl.includes(';base64,')) {
+      console.error('[image-utils] Invalid data URL format')
+      return null
+    }
+
     console.log(`[image-utils] Successfully converted image (${contentType}, ${arrayBuffer.byteLength} bytes, base64: ${base64.length} chars)`)
+    console.log(`[image-utils] Data URL prefix: ${dataUrl.substring(0, 50)}...`)
 
     return dataUrl
   } catch (error) {
@@ -72,17 +80,20 @@ export async function processBusinessProfileLogo<T extends { logo_url?: string |
     return profile
   }
 
-  console.log('[image-utils] Processing business profile logo...')
+  console.log('[image-utils] Processing business profile logo:', profile.logo_url.substring(0, 80))
+
+  // Try base64 conversion first
   const base64Logo = await imageUrlToBase64(profile.logo_url)
 
-  if (!base64Logo) {
-    console.error('[image-utils] Failed to convert logo to base64, keeping original URL')
-    return profile
+  if (base64Logo) {
+    console.log('[image-utils] Logo successfully converted to base64, length:', base64Logo.length)
+    return {
+      ...profile,
+      logo_url: base64Logo,
+    }
   }
 
-  console.log('[image-utils] Logo successfully converted to base64')
-  return {
-    ...profile,
-    logo_url: base64Logo,
-  }
+  // If base64 fails, keep the original URL - react-pdf can handle external URLs
+  console.warn('[image-utils] Base64 conversion failed, using original URL')
+  return profile
 }
