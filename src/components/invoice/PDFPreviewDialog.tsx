@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import dynamic from 'next/dynamic'
-import { Eye, Loader2, X, AlertCircle } from 'lucide-react'
+import { useState, useCallback, useEffect } from 'react'
+import { Eye, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -14,24 +14,6 @@ import {
 import type { InvoiceDraft } from '@/lib/openai/schemas'
 import type { BusinessProfileWithSequence } from '@/types/database'
 import type { Photo } from './PhotoUploader'
-
-// Dynamic imports for client-side only PDF components
-const PDFViewer = dynamic(
-  () => import('@react-pdf/renderer').then((mod) => mod.PDFViewer),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center h-[600px]">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    ),
-  }
-)
-
-const InvoicePDFComponent = dynamic(
-  () => import('@/lib/pdf/invoice-template').then((mod) => mod.InvoicePDF),
-  { ssr: false }
-)
 
 interface PDFPreviewDialogProps {
   invoice: InvoiceDraft
@@ -47,74 +29,108 @@ export function PDFPreviewDialog({
   disabled,
 }: PDFPreviewDialogProps) {
   const [open, setOpen] = useState(false)
-  const [imageErrors, setImageErrors] = useState<string[]>([])
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Transform InvoiceDraft to InvoicePDFProps format
-  const pdfData = useMemo(() => {
-    if (!businessProfile) return null
+  // Generate PDF via server-side API
+  const generatePreview = useCallback(async () => {
+    if (!businessProfile) return
 
-    const subtotal = invoice.line_items.reduce((sum, item) => {
-      if (item.unit_price === null) return sum
-      return sum + item.quantity * item.unit_price
-    }, 0)
+    setLoading(true)
+    setError(null)
 
-    const gstAmount = invoice.invoice.gst_enabled ? subtotal * 0.1 : 0
-    const total = subtotal + gstAmount
+    try {
+      const subtotal = invoice.line_items.reduce((sum, item) => {
+        if (item.unit_price === null) return sum
+        return sum + item.quantity * item.unit_price
+      }, 0)
 
-    return {
-      invoice: {
-        invoice_number:
-          invoice.invoice.invoice_number ||
-          `${businessProfile.sequence?.prefix || 'INV'}-PREVIEW`,
-        invoice_date: invoice.invoice.invoice_date,
-        due_date: invoice.invoice.due_date,
-        customer_name: invoice.customer.name,
-        customer_emails: invoice.customer.emails || [],
-        customer_abn: invoice.customer.abn,
-        job_address: invoice.invoice.job_address,
-        line_items: invoice.line_items.map((item) => ({
-          description: item.description,
-          quantity: item.quantity,
-          unit: item.unit || 'ea',
-          unit_price: item.unit_price || 0,
-          line_total: item.quantity * (item.unit_price || 0),
-        })),
-        subtotal,
-        gst_amount: gstAmount,
-        total,
-        gst_enabled: invoice.invoice.gst_enabled,
-        prices_include_gst: invoice.invoice.prices_include_gst,
-        notes: invoice.notes,
-      },
-      businessProfile: {
-        trading_name: businessProfile.trading_name,
-        business_name: businessProfile.business_name,
-        abn: businessProfile.abn,
-        address: businessProfile.address,
-        logo_url: businessProfile.logo_url,
-        bank_bsb: businessProfile.bank_bsb,
-        bank_account: businessProfile.bank_account,
-        payid: businessProfile.payid,
-        payment_link: businessProfile.payment_link,
-        default_footer_note: businessProfile.default_footer_note,
-      },
-      // For client-side preview, use the photo URLs directly
-      // The signed URLs should work in the browser
-      photos: photos
-        .filter((p) => p.url)
-        .map((p) => ({ url: p.url! })),
+      const gstAmount = invoice.invoice.gst_enabled ? subtotal * 0.1 : 0
+      const total = subtotal + gstAmount
+
+      const response = await fetch('/api/pdf/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoice: {
+            invoice_number:
+              invoice.invoice.invoice_number ||
+              `${businessProfile.sequence?.prefix || 'INV'}-PREVIEW`,
+            invoice_date: invoice.invoice.invoice_date,
+            due_date: invoice.invoice.due_date,
+            customer_name: invoice.customer.name,
+            customer_emails: invoice.customer.emails || [],
+            customer_abn: invoice.customer.abn,
+            job_address: invoice.invoice.job_address,
+            line_items: invoice.line_items.map((item) => ({
+              description: item.description,
+              quantity: item.quantity,
+              unit: item.unit || 'ea',
+              unit_price: item.unit_price || 0,
+              line_total: item.quantity * (item.unit_price || 0),
+            })),
+            subtotal,
+            gst_amount: gstAmount,
+            total,
+            gst_enabled: invoice.invoice.gst_enabled,
+            prices_include_gst: invoice.invoice.prices_include_gst,
+            notes: invoice.notes,
+          },
+          businessProfile: {
+            trading_name: businessProfile.trading_name,
+            business_name: businessProfile.business_name,
+            abn: businessProfile.abn,
+            address: businessProfile.address,
+            logo_url: businessProfile.logo_url,
+            bank_bsb: businessProfile.bank_bsb,
+            bank_account: businessProfile.bank_account,
+            payid: businessProfile.payid,
+            payment_link: businessProfile.payment_link,
+            default_footer_note: businessProfile.default_footer_note,
+          },
+          photos: photos
+            .filter((p) => p.url)
+            .map((p) => ({ url: p.url! })),
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.error || `Server error: ${response.status}`)
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+
+      // Clean up previous URL
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl)
+      }
+
+      setPdfUrl(url)
+    } catch (err) {
+      console.error('PDF preview error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to generate preview')
+    } finally {
+      setLoading(false)
     }
-  }, [invoice, businessProfile, photos])
+  }, [invoice, businessProfile, photos, pdfUrl])
 
-  // Debug info for logo
-  const logoDebugInfo = useMemo(() => {
-    if (!businessProfile) return null
-    return {
-      hasLogoUrl: !!businessProfile.logo_url,
-      logoUrl: businessProfile.logo_url,
-      logoUrlLength: businessProfile.logo_url?.length || 0,
+  // Generate preview when dialog opens
+  useEffect(() => {
+    if (open) {
+      generatePreview()
     }
-  }, [businessProfile])
+    return () => {
+      // Clean up blob URL when dialog closes
+      if (!open && pdfUrl) {
+        URL.revokeObjectURL(pdfUrl)
+        setPdfUrl(null)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   if (!businessProfile) {
     return (
@@ -135,58 +151,80 @@ export function PDFPreviewDialog({
       </DialogTrigger>
       <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Invoice Preview</span>
-          </DialogTitle>
+          <DialogTitle>Invoice Preview</DialogTitle>
+          <DialogDescription>
+            This is exactly how the PDF will look when sent to the customer.
+          </DialogDescription>
         </DialogHeader>
 
-        {/* Debug info for logo */}
-        {logoDebugInfo && (
-          <div className="text-xs bg-muted p-2 rounded space-y-1">
-            <div className="font-medium">Debug Info:</div>
-            <div>
-              Logo URL:{' '}
-              {logoDebugInfo.hasLogoUrl ? (
-                <span className="text-green-600">Present ({logoDebugInfo.logoUrlLength} chars)</span>
-              ) : (
-                <span className="text-red-600">Missing</span>
-              )}
-            </div>
-            {logoDebugInfo.logoUrl && (
-              <div className="truncate text-muted-foreground">
-                URL: {logoDebugInfo.logoUrl.substring(0, 80)}...
-              </div>
+        {/* Debug info */}
+        <div className="text-xs bg-muted p-2 rounded space-y-1">
+          <div className="font-medium">Debug Info:</div>
+          <div>
+            Logo URL:{' '}
+            {businessProfile.logo_url ? (
+              <span className="text-green-600">
+                Present ({businessProfile.logo_url.length} chars)
+              </span>
+            ) : (
+              <span className="text-red-600">Missing</span>
             )}
-            <div>
-              Photos: {photos.length} uploaded, {photos.filter(p => p.url).length} with URLs
+          </div>
+          {businessProfile.logo_url && (
+            <div className="truncate text-muted-foreground">
+              {businessProfile.logo_url.substring(0, 100)}...
+            </div>
+          )}
+          <div>
+            Photos: {photos.length} uploaded, {photos.filter((p) => p.url).length} with URLs
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded p-3 text-sm">
+            <div className="flex items-center gap-2 text-red-800">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{error}</span>
             </div>
           </div>
         )}
 
-        {imageErrors.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded p-2 text-sm">
-            <div className="flex items-center gap-2 text-amber-800">
-              <AlertCircle className="w-4 h-4" />
-              <span>Some images may not load in preview due to CORS restrictions</span>
+        <div className="flex-1 overflow-hidden rounded border relative">
+          {loading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-10">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">Generating PDF preview...</p>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="flex-1 overflow-hidden rounded border">
-          {pdfData && (
-            <PDFViewer
+          {pdfUrl && (
+            <iframe
+              src={pdfUrl}
               width="100%"
               height="100%"
-              showToolbar={true}
               className="rounded"
-            >
-              <InvoicePDFComponent
-                invoice={pdfData.invoice}
-                businessProfile={pdfData.businessProfile}
-                photos={pdfData.photos}
-              />
-            </PDFViewer>
+              title="Invoice PDF Preview"
+            />
           )}
+
+          {!loading && !pdfUrl && !error && (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              Click to generate preview
+            </div>
+          )}
+        </div>
+
+        {/* Refresh button */}
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={generatePreview}
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh Preview
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
