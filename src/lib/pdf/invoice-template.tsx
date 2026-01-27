@@ -8,19 +8,18 @@ import {
   Link,
 } from '@react-pdf/renderer'
 
-// Brand colors
+// Clean, professional color palette
 const colors = {
-  primary: '#1e40af', // Blue
-  primaryLight: '#3b82f6',
-  secondary: '#64748b',
-  accent: '#0891b2',
-  background: '#f8fafc',
-  border: '#e2e8f0',
-  text: '#1e293b',
-  textLight: '#64748b',
-  success: '#16a34a',
+  primary: '#2563eb',
+  text: '#111827',
+  textMuted: '#6b7280',
+  border: '#e5e7eb',
+  borderLight: '#f3f4f6',
   white: '#ffffff',
 }
+
+// Accent gradient bar segment colors
+const gradientColors = ['#3b82f6', '#2563eb', '#0284c7', '#0891b2', '#0d9488']
 
 const styles = StyleSheet.create({
   page: {
@@ -29,213 +28,223 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
     color: colors.text,
   },
-  // Header with logo
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
-    paddingBottom: 20,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.primary,
+    marginBottom: 0,
   },
-  logoContainer: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
     maxWidth: '60%',
   },
   logo: {
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     objectFit: 'contain',
   },
   businessInfo: {
     flex: 1,
     minWidth: 120,
   },
-  businessName: {
-    fontSize: 18,
+  tradingName: {
+    fontSize: 14,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: colors.text,
     marginBottom: 2,
   },
   businessDetail: {
     fontSize: 9,
-    color: colors.textLight,
+    color: colors.textMuted,
     marginBottom: 1,
   },
-  invoiceTitleContainer: {
+  headerRight: {
     alignItems: 'flex-end',
   },
-  invoiceTitle: {
-    fontSize: 28,
+  headerInvoiceLabel: {
+    fontSize: 12,
     fontWeight: 'bold',
     color: colors.primary,
-    letterSpacing: 1,
   },
-  invoiceNumber: {
-    fontSize: 12,
-    color: colors.textLight,
-    marginTop: 4,
+  headerDateLabel: {
+    fontSize: 8,
+    color: colors.textMuted,
+    marginTop: 6,
   },
-  invoiceMeta: {
+  headerDateValue: {
     fontSize: 10,
     color: colors.text,
-    marginTop: 2,
+    marginTop: 1,
   },
-  // Two column layout for bill to / invoice details
+  // Gradient bar
+  gradientBar: {
+    flexDirection: 'row',
+    marginHorizontal: -40,
+    marginTop: 20,
+    marginBottom: 25,
+    height: 5,
+  },
+  gradientSegment: {
+    flex: 1,
+    height: 5,
+  },
+  // Thin gradient bar for photos page
+  thinGradientBar: {
+    flexDirection: 'row',
+    marginHorizontal: -40,
+    marginBottom: 20,
+    height: 3,
+  },
+  thinGradientSegment: {
+    flex: 1,
+    height: 3,
+  },
+  // Title section
+  titleSection: {
+    marginBottom: 25,
+  },
+  titleText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  taglineText: {
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  // Three-column info section
   infoRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 25,
-    gap: 40,
+    gap: 20,
   },
   infoColumn: {
     flex: 1,
   },
-  sectionTitle: {
+  sectionLabel: {
     fontSize: 8,
     fontWeight: 'bold',
     color: colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 8,
-    paddingBottom: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
-  customerName: {
-    fontSize: 12,
+  infoName: {
+    fontSize: 11,
     fontWeight: 'bold',
-    marginBottom: 4,
+    color: colors.text,
+    marginBottom: 3,
   },
-  customerDetail: {
-    fontSize: 10,
-    color: colors.textLight,
+  infoDetail: {
+    fontSize: 9,
+    color: colors.textMuted,
     marginBottom: 2,
   },
-  abnLabel: {
-    fontSize: 9,
-    color: colors.textLight,
+  infoValue: {
+    fontSize: 10,
+    color: colors.text,
+    marginBottom: 2,
   },
-  // Line items table
-  table: {
-    marginTop: 10,
-    marginBottom: 20,
+  // Items table
+  itemsSectionLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 8,
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: colors.primary,
-    padding: 10,
-    color: colors.white,
-    fontWeight: 'bold',
-    fontSize: 9,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    padding: 10,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  tableRowAlt: {
-    backgroundColor: colors.background,
+  tableHeaderText: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    color: colors.textMuted,
   },
-  colDescription: { width: '40%' },
-  colQty: { width: '12%', textAlign: 'center' },
-  colUnit: { width: '10%', textAlign: 'center' },
-  colPrice: { width: '19%', textAlign: 'right' },
-  colTotal: { width: '19%', textAlign: 'right' },
-  // Totals section
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  tableCell: {
+    fontSize: 9,
+    color: colors.text,
+  },
+  colItems: { width: '45%' },
+  colQty: { width: '15%', textAlign: 'center' },
+  colPrice: { width: '20%', textAlign: 'right' },
+  colAmount: { width: '20%', textAlign: 'right' },
+  // Totals
   totalsContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 10,
+    marginTop: 12,
   },
   totalsBox: {
-    width: 220,
-    backgroundColor: colors.background,
-    padding: 15,
-    borderRadius: 4,
+    width: 200,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
-    fontSize: 10,
+    marginBottom: 4,
   },
   totalLabel: {
-    color: colors.textLight,
+    fontSize: 9,
+    color: colors.textMuted,
   },
   totalValue: {
-    fontWeight: 'bold',
+    fontSize: 9,
+    color: colors.text,
   },
-  grandTotalRow: {
+  grandTotalBar: {
+    marginHorizontal: -40,
+    borderTopWidth: 2,
+    borderTopColor: colors.text,
+    marginTop: 12,
+  },
+  grandTotalInner: {
+    paddingTop: 12,
+    paddingHorizontal: 40,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    borderTopWidth: 2,
-    borderTopColor: colors.primary,
-    paddingTop: 10,
-    marginTop: 6,
   },
   grandTotalLabel: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: colors.text,
   },
   grandTotalValue: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: colors.text,
   },
   gstNote: {
     fontSize: 8,
-    color: colors.textLight,
+    color: colors.textMuted,
     marginTop: 8,
     textAlign: 'right',
   },
   // Payment section
   paymentSection: {
-    flexDirection: 'row',
     marginTop: 30,
-    padding: 20,
-    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
     borderRadius: 4,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
-  },
-  paymentDetails: {
-    flex: 1,
-  },
-  paymentTitle: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  paymentRow: {
+    padding: 20,
     flexDirection: 'row',
-    marginBottom: 4,
-    fontSize: 10,
-  },
-  paymentLabel: {
-    width: 70,
-    color: colors.textLight,
-  },
-  paymentValue: {
-    flex: 1,
-    fontWeight: 'bold',
-  },
-  paymentLink: {
-    color: colors.primaryLight,
-    textDecoration: 'none',
   },
   qrContainer: {
     width: 80,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 20,
+    marginRight: 20,
   },
   qrCode: {
     width: 70,
@@ -243,56 +252,74 @@ const styles = StyleSheet.create({
   },
   qrLabel: {
     fontSize: 7,
-    color: colors.textLight,
+    color: colors.textMuted,
     marginTop: 4,
     textAlign: 'center',
   },
-  // Notes section
+  paymentDetails: {
+    flex: 1,
+  },
+  paymentTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 10,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    marginBottom: 4,
+    fontSize: 10,
+  },
+  paymentLabel: {
+    width: 80,
+    color: colors.textMuted,
+    fontSize: 9,
+  },
+  paymentValue: {
+    flex: 1,
+    fontWeight: 'bold',
+    fontSize: 9,
+  },
+  paymentLink: {
+    color: colors.primary,
+    textDecoration: 'none',
+    fontSize: 9,
+  },
+  // Notes
   notesSection: {
     marginTop: 20,
-    padding: 15,
-    backgroundColor: colors.background,
-    borderRadius: 4,
   },
   notesTitle: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: colors.textLight,
-    marginBottom: 6,
+    color: colors.textMuted,
     textTransform: 'uppercase',
+    marginBottom: 6,
   },
   notesText: {
-    fontSize: 10,
+    fontSize: 9,
     color: colors.text,
     lineHeight: 1.4,
   },
-  // Footer
-  footer: {
+  // Page number
+  pageNumber: {
     position: 'absolute',
-    bottom: 30,
-    left: 40,
+    bottom: 25,
     right: 40,
-    textAlign: 'center',
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  footerText: {
-    fontSize: 9,
-    color: colors.textLight,
+    fontSize: 8,
+    color: colors.textMuted,
   },
   // Photos page
   photosPage: {
     padding: 40,
+    fontFamily: 'Helvetica',
+    color: colors.text,
   },
   photosTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: colors.text,
     marginBottom: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.primary,
   },
   photosGrid: {
     flexDirection: 'row',
@@ -395,21 +422,39 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
   const qrCodeUrl = getPaymentQrUrl(businessProfile.payid, businessProfile.payment_link)
   const hasPaymentInfo = businessProfile.bank_bsb || businessProfile.bank_account || businessProfile.payid || businessProfile.payment_link
 
+  const showBusinessName =
+    businessProfile.business_name &&
+    businessProfile.business_name !== businessProfile.trading_name
+
+  const paymentTitle =
+    businessProfile.payment_link || businessProfile.payid
+      ? 'Pay online'
+      : 'Payment Details'
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {/* Page number */}
+        <Text
+          style={styles.pageNumber}
+          render={({ pageNumber, totalPages }) =>
+            `Page ${pageNumber} of ${totalPages}`
+          }
+          fixed
+        />
+
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.logoContainer}>
+          <View style={styles.headerLeft}>
             {businessProfile.logo_url && (
-              <View style={{ width: 50, height: 50 }}>
+              <View style={{ width: 40, height: 40 }}>
                 {/* eslint-disable-next-line jsx-a11y/alt-text */}
                 <Image src={businessProfile.logo_url} style={styles.logo} />
               </View>
             )}
             <View style={styles.businessInfo}>
-              <Text style={styles.businessName}>{businessProfile.trading_name}</Text>
-              {businessProfile.business_name && (
+              <Text style={styles.tradingName}>{businessProfile.trading_name}</Text>
+              {showBusinessName && (
                 <Text style={styles.businessDetail}>{businessProfile.business_name}</Text>
               )}
               {businessProfile.abn && (
@@ -420,55 +465,91 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
               )}
             </View>
           </View>
-          <View style={styles.invoiceTitleContainer}>
-            <Text style={styles.invoiceTitle}>TAX INVOICE</Text>
-            <Text style={styles.invoiceNumber}>#{invoice.invoice_number}</Text>
-            <Text style={styles.invoiceMeta}>Date: {formatDate(invoice.invoice_date)}</Text>
-            <Text style={styles.invoiceMeta}>Due: {formatDate(invoice.due_date)}</Text>
+          <View style={styles.headerRight}>
+            <Text style={styles.headerInvoiceLabel}>Tax Invoice #{invoice.invoice_number}</Text>
+            <Text style={styles.headerDateLabel}>Issue date</Text>
+            <Text style={styles.headerDateValue}>{formatDate(invoice.invoice_date)}</Text>
           </View>
         </View>
 
-        {/* Bill To / Invoice Info Row */}
-        <View style={styles.infoRow}>
-          <View style={styles.infoColumn}>
-            <Text style={styles.sectionTitle}>Bill To</Text>
-            <Text style={styles.customerName}>{invoice.customer_name}</Text>
-            {invoice.customer_emails.map((email, i) => (
-              <Text key={i} style={styles.customerDetail}>{email}</Text>
-            ))}
-            {invoice.customer_abn && (
-              <Text style={styles.abnLabel}>ABN: {formatABN(invoice.customer_abn)}</Text>
-            )}
-          </View>
-          {invoice.job_address && (
-            <View style={styles.infoColumn}>
-              <Text style={styles.sectionTitle}>Job Location</Text>
-              <Text style={styles.customerDetail}>{invoice.job_address}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Line Items Table */}
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={styles.colDescription}>Description</Text>
-            <Text style={styles.colQty}>Qty</Text>
-            <Text style={styles.colUnit}>Unit</Text>
-            <Text style={styles.colPrice}>
-              Price {invoice.gst_enabled && pricesIncludeGst ? '(inc)' : ''}
-            </Text>
-            <Text style={styles.colTotal}>Total</Text>
-          </View>
-          {invoice.line_items.map((item, i) => (
-            <View key={i} style={[styles.tableRow, i % 2 === 1 ? styles.tableRowAlt : {}]}>
-              <Text style={styles.colDescription}>{item.description}</Text>
-              <Text style={styles.colQty}>{item.quantity}</Text>
-              <Text style={styles.colUnit}>{item.unit}</Text>
-              <Text style={styles.colPrice}>{formatCurrency(item.unit_price)}</Text>
-              <Text style={styles.colTotal}>{formatCurrency(item.line_total)}</Text>
-            </View>
+        {/* Accent Gradient Bar */}
+        <View style={styles.gradientBar}>
+          {gradientColors.map((color, i) => (
+            <View key={i} style={[styles.gradientSegment, { backgroundColor: color }]} />
           ))}
         </View>
+
+        {/* Title Section */}
+        <View style={styles.titleSection}>
+          <Text style={styles.titleText}>Tax Invoice #{invoice.invoice_number}</Text>
+          <Text style={styles.taglineText}>
+            {businessProfile.default_footer_note || 'Thank you for your business.'}
+          </Text>
+        </View>
+
+        {/* Three-Column Info Section */}
+        <View style={styles.infoRow}>
+          {/* Customer */}
+          <View style={styles.infoColumn}>
+            <Text style={styles.sectionLabel}>Customer</Text>
+            <Text style={styles.infoName}>{invoice.customer_name}</Text>
+            {invoice.customer_emails.map((email, i) => (
+              <Text key={i} style={styles.infoDetail}>{email}</Text>
+            ))}
+            {invoice.customer_abn && (
+              <Text style={styles.infoDetail}>ABN: {formatABN(invoice.customer_abn)}</Text>
+            )}
+          </View>
+
+          {/* Invoice Details */}
+          <View style={styles.infoColumn}>
+            <Text style={styles.sectionLabel}>Invoice Details</Text>
+            <Text style={styles.infoDetail}>Issue date</Text>
+            <Text style={styles.infoValue}>{formatDate(invoice.invoice_date)}</Text>
+            {invoice.job_address && (
+              <>
+                <Text style={[styles.infoDetail, { marginTop: 4 }]}>Job address</Text>
+                <Text style={styles.infoValue}>{invoice.job_address}</Text>
+              </>
+            )}
+            <Text style={[styles.infoDetail, { marginTop: 4 }]}>Total amount</Text>
+            <Text style={styles.infoValue}>{formatCurrency(displayTotal)}</Text>
+          </View>
+
+          {/* Payment */}
+          <View style={styles.infoColumn}>
+            <Text style={styles.sectionLabel}>Payment</Text>
+            <Text style={styles.infoDetail}>Due date</Text>
+            <Text style={styles.infoValue}>{formatDate(invoice.due_date)}</Text>
+            <Text style={[styles.infoDetail, { marginTop: 4 }]}>Total amount</Text>
+            <Text style={styles.infoValue}>{formatCurrency(displayTotal)}</Text>
+          </View>
+        </View>
+
+        {/* Items Table */}
+        <Text style={styles.itemsSectionLabel}>Items</Text>
+        <View style={styles.tableHeader}>
+          <Text style={[styles.tableHeaderText, styles.colItems]}>Items</Text>
+          <Text style={[styles.tableHeaderText, styles.colQty]}>Quantity</Text>
+          <Text style={[styles.tableHeaderText, styles.colPrice]}>Price</Text>
+          <Text style={[styles.tableHeaderText, styles.colAmount]}>Amount</Text>
+        </View>
+        {invoice.line_items.map((item, i) => (
+          <View key={i} style={styles.tableRow}>
+            <Text style={[styles.tableCell, styles.colItems]}>
+              {item.description}{invoice.gst_enabled ? ' *' : ''}
+            </Text>
+            <Text style={[styles.tableCell, styles.colQty]}>
+              {item.quantity} {item.unit}
+            </Text>
+            <Text style={[styles.tableCell, styles.colPrice]}>
+              {formatCurrency(item.unit_price)}
+            </Text>
+            <Text style={[styles.tableCell, styles.colAmount]}>
+              {formatCurrency(item.line_total)}
+            </Text>
+          </View>
+        ))}
 
         {/* Totals */}
         <View style={styles.totalsContainer}>
@@ -485,27 +566,52 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
                 <Text style={styles.totalValue}>{formatCurrency(displayGst)}</Text>
               </View>
             )}
-            <View style={styles.grandTotalRow}>
-              <Text style={styles.grandTotalLabel}>
-                Total {invoice.gst_enabled ? '(inc GST)' : ''}
-              </Text>
-              <Text style={styles.grandTotalValue}>{formatCurrency(displayTotal)} AUD</Text>
-            </View>
-            {invoice.gst_enabled && (
-              <Text style={styles.gstNote}>
-                {pricesIncludeGst
-                  ? 'All prices shown include GST'
-                  : 'All prices shown exclude GST'}
-              </Text>
-            )}
           </View>
         </View>
+
+        {/* Grand Total - full width bar */}
+        <View style={styles.grandTotalBar}>
+          <View style={styles.grandTotalInner}>
+            <Text style={styles.grandTotalLabel}>Total Due</Text>
+            <Text style={styles.grandTotalValue}>{formatCurrency(displayTotal)} AUD</Text>
+          </View>
+        </View>
+
+        {/* GST Note */}
+        {invoice.gst_enabled && (
+          <Text style={styles.gstNote}>
+            (*) Taxable item | All prices shown {pricesIncludeGst ? 'include' : 'exclude'} GST
+          </Text>
+        )}
 
         {/* Payment Details */}
         {hasPaymentInfo && (
           <View style={styles.paymentSection}>
+            {qrCodeUrl && (
+              <View style={styles.qrContainer}>
+                <View style={{ width: 70, height: 70 }}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  <Image src={qrCodeUrl} style={styles.qrCode} />
+                </View>
+                <Text style={styles.qrLabel}>Scan to pay</Text>
+              </View>
+            )}
             <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>Payment Details</Text>
+              <Text style={styles.paymentTitle}>{paymentTitle}</Text>
+              {businessProfile.payment_link && (
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentLabel}>Link:</Text>
+                  <Link src={businessProfile.payment_link} style={styles.paymentLink}>
+                    <Text>{businessProfile.payment_link}</Text>
+                  </Link>
+                </View>
+              )}
+              {businessProfile.payid && (
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentLabel}>PayID:</Text>
+                  <Text style={styles.paymentValue}>{businessProfile.payid}</Text>
+                </View>
+              )}
               {businessProfile.bank_bsb && (
                 <View style={styles.paymentRow}>
                   <Text style={styles.paymentLabel}>BSB:</Text>
@@ -518,28 +624,7 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
                   <Text style={styles.paymentValue}>{businessProfile.bank_account}</Text>
                 </View>
               )}
-              {businessProfile.payid && (
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>PayID:</Text>
-                  <Text style={styles.paymentValue}>{businessProfile.payid}</Text>
-                </View>
-              )}
-              {businessProfile.payment_link && (
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>Pay Online:</Text>
-                  <Link src={businessProfile.payment_link} style={styles.paymentLink}>
-                    <Text>{businessProfile.payment_link}</Text>
-                  </Link>
-                </View>
-              )}
             </View>
-            {qrCodeUrl && (
-              <View style={styles.qrContainer}>
-                {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                <Image src={qrCodeUrl} style={styles.qrCode} />
-                <Text style={styles.qrLabel}>Scan to pay</Text>
-              </View>
-            )}
           </View>
         )}
 
@@ -550,24 +635,34 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
             <Text style={styles.notesText}>{invoice.notes}</Text>
           </View>
         )}
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            {businessProfile.default_footer_note || 'Thank you for your business!'}
-          </Text>
-        </View>
       </Page>
 
       {/* Photos Page (if any) */}
       {photos && photos.length > 0 && (
         <Page size="A4" style={styles.photosPage}>
+          {/* Page number */}
+          <Text
+            style={styles.pageNumber}
+            render={({ pageNumber, totalPages }) =>
+              `Page ${pageNumber} of ${totalPages}`
+            }
+            fixed
+          />
+          {/* Thin accent bar */}
+          <View style={styles.thinGradientBar}>
+            {gradientColors.map((color, i) => (
+              <View key={i} style={[styles.thinGradientSegment, { backgroundColor: color }]} />
+            ))}
+          </View>
+
           <Text style={styles.photosTitle}>Work Photos</Text>
           <View style={styles.photosGrid}>
             {photos.map((photo, i) => (
               <View key={i} style={styles.photoContainer}>
-                {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                <Image src={photo.url} style={styles.photo} />
+                <View style={{ width: '100%', height: 200 }}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  <Image src={photo.url} style={styles.photo} />
+                </View>
               </View>
             ))}
           </View>
