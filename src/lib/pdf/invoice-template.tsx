@@ -37,7 +37,8 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    maxWidth: '60%',
+    flex: 1,
+    marginRight: 20,
   },
   logoWrap: {
     width: 43,
@@ -66,6 +67,8 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     alignItems: 'flex-end',
+    flexShrink: 0,
+    width: 180,
   },
   headerInvoiceLabel: {
     fontSize: 12,
