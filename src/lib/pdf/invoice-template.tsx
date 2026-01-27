@@ -18,8 +18,8 @@ const colors = {
   white: '#ffffff',
 }
 
-// Accent gradient bar segment colors
-const gradientColors = ['#3b82f6', '#2563eb', '#0284c7', '#0891b2', '#0d9488']
+// Accent line color
+const accentBlue = '#005fE6'
 
 const styles = StyleSheet.create({
   page: {
@@ -82,32 +82,27 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: 1,
   },
-  // Gradient bar
-  gradientBar: {
-    flexDirection: 'row',
+  // Accent line
+  accentLine: {
     marginHorizontal: -40,
     marginTop: 20,
     marginBottom: 25,
-    height: 5,
+    height: 2,
+    backgroundColor: accentBlue,
   },
-  gradientSegment: {
-    flex: 1,
-    height: 5,
-  },
-  // Thin gradient bar for photos page
-  thinGradientBar: {
-    flexDirection: 'row',
+  // Thin accent line for photos page
+  thinAccentLine: {
     marginHorizontal: -40,
     marginBottom: 20,
-    height: 3,
-  },
-  thinGradientSegment: {
-    flex: 1,
-    height: 3,
+    height: 1.5,
+    backgroundColor: accentBlue,
   },
   // Title section
   titleSection: {
-    marginBottom: 25,
+    marginBottom: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   titleText: {
     fontSize: 22,
@@ -129,12 +124,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionLabel: {
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: 'bold',
-    color: colors.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 8,
+    color: colors.text,
+    marginBottom: 6,
   },
   infoName: {
     fontSize: 11,
@@ -156,7 +149,7 @@ const styles = StyleSheet.create({
   itemsSectionLabel: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: colors.text,
     marginBottom: 8,
   },
   tableHeader: {
@@ -207,33 +200,28 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: colors.text,
   },
-  grandTotalBar: {
-    marginHorizontal: -40,
-    borderTopWidth: 2,
-    borderTopColor: colors.text,
-    marginTop: 12,
-  },
-  grandTotalInner: {
-    paddingTop: 12,
-    paddingHorizontal: 40,
+  grandTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   grandTotalLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: colors.text,
   },
   grandTotalValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: colors.text,
   },
   gstNote: {
     fontSize: 8,
     color: colors.textMuted,
-    marginTop: 8,
-    textAlign: 'right',
+    marginTop: 10,
   },
   // Payment section
   paymentSection: {
@@ -476,12 +464,8 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
           </View>
         </View>
 
-        {/* Accent Gradient Bar */}
-        <View style={styles.gradientBar}>
-          {gradientColors.map((color, i) => (
-            <View key={i} style={[styles.gradientSegment, { backgroundColor: color }]} />
-          ))}
-        </View>
+        {/* Accent Line */}
+        <View style={styles.accentLine} />
 
         {/* Title Section */}
         <View style={styles.titleSection}>
@@ -508,25 +492,18 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
           {/* Invoice Details */}
           <View style={styles.infoColumn}>
             <Text style={styles.sectionLabel}>Invoice Details</Text>
-            <Text style={styles.infoDetail}>Issue date</Text>
-            <Text style={styles.infoValue}>{formatDate(invoice.invoice_date)}</Text>
+            <Text style={styles.infoDetail}>{formatDate(invoice.invoice_date)}</Text>
             {invoice.job_address && (
-              <>
-                <Text style={[styles.infoDetail, { marginTop: 4 }]}>Job address</Text>
-                <Text style={styles.infoValue}>{invoice.job_address}</Text>
-              </>
+              <Text style={styles.infoDetail}>{invoice.job_address}</Text>
             )}
-            <Text style={[styles.infoDetail, { marginTop: 4 }]}>Total amount</Text>
-            <Text style={styles.infoValue}>{formatCurrency(displayTotal)}</Text>
+            <Text style={styles.infoDetail}>{formatCurrency(displayTotal)}</Text>
           </View>
 
           {/* Payment */}
           <View style={styles.infoColumn}>
             <Text style={styles.sectionLabel}>Payment</Text>
-            <Text style={styles.infoDetail}>Due date</Text>
-            <Text style={styles.infoValue}>{formatDate(invoice.due_date)}</Text>
-            <Text style={[styles.infoDetail, { marginTop: 4 }]}>Total amount</Text>
-            <Text style={styles.infoValue}>{formatCurrency(displayTotal)}</Text>
+            <Text style={styles.infoDetail}>Due {formatDate(invoice.due_date)}</Text>
+            <Text style={styles.infoDetail}>{formatCurrency(displayTotal)}</Text>
           </View>
         </View>
 
@@ -570,22 +547,16 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
                 <Text style={styles.totalValue}>{formatCurrency(displayGst)}</Text>
               </View>
             )}
-          </View>
-        </View>
-
-        {/* Grand Total - full width bar */}
-        <View style={styles.grandTotalBar}>
-          <View style={styles.grandTotalInner}>
-            <Text style={styles.grandTotalLabel}>Total Due</Text>
-            <Text style={styles.grandTotalValue}>{formatCurrency(displayTotal)} AUD</Text>
+            <View style={styles.grandTotalRow}>
+              <Text style={styles.grandTotalLabel}>Total Due</Text>
+              <Text style={styles.grandTotalValue}>{formatCurrency(displayTotal)}</Text>
+            </View>
           </View>
         </View>
 
         {/* GST Note */}
         {invoice.gst_enabled && (
-          <Text style={styles.gstNote}>
-            (*) Taxable item | All prices shown {pricesIncludeGst ? 'include' : 'exclude'} GST
-          </Text>
+          <Text style={styles.gstNote}>(*) Taxable item</Text>
         )}
 
         {/* Payment Details */}
@@ -652,12 +623,8 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
             }
             fixed
           />
-          {/* Thin accent bar */}
-          <View style={styles.thinGradientBar}>
-            {gradientColors.map((color, i) => (
-              <View key={i} style={[styles.thinGradientSegment, { backgroundColor: color }]} />
-            ))}
-          </View>
+          {/* Thin accent line */}
+          <View style={styles.thinAccentLine} />
 
           <Text style={styles.photosTitle}>Work Photos</Text>
           <View style={styles.photosGrid}>
