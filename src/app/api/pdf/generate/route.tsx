@@ -140,9 +140,7 @@ async function generateFromDatabase(invoiceId: string) {
   }
 
   // Convert logo URL to base64 for reliable PDF rendering
-  console.log('[pdf-generate] Processing logo, original URL:', pdfData.businessProfile.logo_url?.substring(0, 80))
   pdfData.businessProfile = await processBusinessProfileLogo(pdfData.businessProfile)
-  console.log('[pdf-generate] Logo after processing:', pdfData.businessProfile.logo_url ? `data URL (${pdfData.businessProfile.logo_url.length} chars)` : 'null')
 
   // Process photos - get signed URLs and convert to base64
   if (photos && photos.length > 0) {

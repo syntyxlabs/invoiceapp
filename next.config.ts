@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  serverExternalPackages: [
+    '@react-pdf/renderer',
+    '@react-pdf/layout',
+    '@react-pdf/image',
+  ],
 };
 
 export default nextConfig;

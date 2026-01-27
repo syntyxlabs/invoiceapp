@@ -157,29 +157,6 @@ export function PDFPreviewDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Debug info */}
-        <div className="text-xs bg-muted p-2 rounded space-y-1">
-          <div className="font-medium">Debug Info:</div>
-          <div>
-            Logo URL:{' '}
-            {businessProfile.logo_url ? (
-              <span className="text-green-600">
-                Present ({businessProfile.logo_url.length} chars)
-              </span>
-            ) : (
-              <span className="text-red-600">Missing</span>
-            )}
-          </div>
-          {businessProfile.logo_url && (
-            <div className="truncate text-muted-foreground">
-              {businessProfile.logo_url.substring(0, 100)}...
-            </div>
-          )}
-          <div>
-            Photos: {photos.length} uploaded, {photos.filter((p) => p.url).length} with URLs
-          </div>
-        </div>
-
         {error && (
           <div className="bg-red-50 border border-red-200 rounded p-3 text-sm">
             <div className="flex items-center gap-2 text-red-800">

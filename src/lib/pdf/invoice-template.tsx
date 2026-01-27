@@ -402,8 +402,10 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             {businessProfile.logo_url && (
-              // eslint-disable-next-line jsx-a11y/alt-text
-              <Image src={businessProfile.logo_url} style={styles.logo} />
+              <View style={{ width: 50, height: 50 }}>
+                {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                <Image src={businessProfile.logo_url} style={styles.logo} />
+              </View>
             )}
             <View style={styles.businessInfo}>
               <Text style={styles.businessName}>{businessProfile.trading_name}</Text>
