@@ -37,17 +37,21 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
     maxWidth: '60%',
   },
+  logoWrap: {
+    width: 43,
+    height: 43,
+    flexShrink: 0,
+    marginRight: 12,
+  },
   logo: {
-    width: 40,
-    height: 40,
+    width: 43,
+    height: 43,
     objectFit: 'contain',
   },
   businessInfo: {
     flex: 1,
-    minWidth: 120,
   },
   tradingName: {
     fontSize: 14,
@@ -447,7 +451,7 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             {businessProfile.logo_url && (
-              <View style={{ width: 40, height: 40 }}>
+              <View style={styles.logoWrap}>
                 {/* eslint-disable-next-line jsx-a11y/alt-text */}
                 <Image src={businessProfile.logo_url} style={styles.logo} />
               </View>
