@@ -1,9 +1,19 @@
-import Link from 'next/link'
-import { Plus, FileText } from 'lucide-react'
+'use client'
+
+import { useState } from 'react'
+import { InvoiceList, InvoiceFilters } from '@/components/dashboard'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Plus } from 'lucide-react'
+import Link from 'next/link'
+
+type StatusFilter = 'all' | 'draft' | 'sent' | 'overdue' | 'paid' | 'cancelled'
 
 export default function InvoicesPage() {
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'customer'>('date')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -13,37 +23,31 @@ export default function InvoicesPage() {
             Manage and track your invoices
           </p>
         </div>
-        <Link href="/invoices/new">
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
+        <Button asChild>
+          <Link href="/invoices/new">
+            <Plus className="h-4 w-4 mr-2" />
             New Invoice
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">No invoices yet</CardTitle>
-          <CardDescription>
-            Create your first invoice to get started
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center gap-4 py-8">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-            <FileText className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <p className="text-sm text-muted-foreground text-center max-w-sm">
-            You can create invoices using voice input or manual entry.
-            Simply describe the work you did and we will generate a professional invoice.
-          </p>
-          <Link href="/invoices/new">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Your First Invoice
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+      <InvoiceFilters
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
+        sortOrder={sortOrder}
+        onSortOrderChange={setSortOrder}
+      />
+
+      <InvoiceList
+        statusFilter={statusFilter}
+        searchQuery={searchQuery}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+      />
     </div>
   )
 }
