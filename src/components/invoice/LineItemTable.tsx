@@ -3,6 +3,7 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -10,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { MaterialPicker } from '@/components/invoice/MaterialPicker'
 import type { InvoiceDraft } from '@/lib/openai/schemas'
 
 type LineItem = InvoiceDraft['line_items'][number]
@@ -48,8 +50,14 @@ export function LineItemTable({ items, onChange }: LineItemTableProps) {
         quantity: 1,
         unit: 'ea' as const,
         unit_price: null,
+        item_type: 'labour' as const,
       }
     ])
+  }
+
+  const toggleItemType = (index: number) => {
+    const current = items[index].item_type || 'labour'
+    updateItem(index, { item_type: current === 'labour' ? 'material' : 'labour' })
   }
 
   const calculateLineTotal = (item: LineItem): number | null => {
@@ -78,16 +86,30 @@ export function LineItemTable({ items, onChange }: LineItemTableProps) {
           data-testid="line-item"
           className="grid grid-cols-1 md:grid-cols-12 gap-2 p-4 md:p-0 border md:border-0 rounded-lg"
         >
-          {/* Description */}
+          {/* Type + Description */}
           <div className="md:col-span-5">
             <label className="text-sm text-muted-foreground md:hidden">
               Description
             </label>
-            <Input
-              value={item.description}
-              onChange={(e) => updateItem(index, { description: e.target.value })}
-              placeholder="Description"
-            />
+            <div className="flex gap-2 items-start">
+              <Badge
+                variant="outline"
+                className={`cursor-pointer select-none shrink-0 mt-2 ${
+                  (item.item_type || 'labour') === 'labour'
+                    ? 'border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                    : 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100'
+                }`}
+                onClick={() => toggleItemType(index)}
+              >
+                {(item.item_type || 'labour') === 'labour' ? 'Labour' : 'Material'}
+              </Badge>
+              <Input
+                value={item.description}
+                onChange={(e) => updateItem(index, { description: e.target.value })}
+                placeholder="Description"
+                className="flex-1"
+              />
+            </div>
           </div>
 
           {/* Quantity */}
@@ -183,15 +205,20 @@ export function LineItemTable({ items, onChange }: LineItemTableProps) {
         </div>
       ))}
 
-      {/* Add Item Button */}
-      <Button
-        variant="outline"
-        onClick={addItem}
-        className="w-full"
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        Add Line Item
-      </Button>
+      {/* Add Item Buttons */}
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          onClick={addItem}
+          className="flex-1"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Line Item
+        </Button>
+        <MaterialPicker
+          onSelect={(item) => onChange([...items, item])}
+        />
+      </div>
     </div>
   )
 }

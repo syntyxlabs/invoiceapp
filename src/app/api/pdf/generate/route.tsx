@@ -117,6 +117,7 @@ async function generateFromDatabase(invoiceId: string) {
         unit: item.unit || 'ea',
         unit_price: item.unit_price,
         line_total: item.line_total,
+        item_type: (item as typeof item & { item_type?: string }).item_type || 'labour',
       })),
       subtotal: invoiceData.subtotal,
       gst_amount: invoiceData.gst_amount,

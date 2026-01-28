@@ -45,9 +45,14 @@ export const invoiceSchema = {
           unit_price: {
             anyOf: [{ type: 'number' }, { type: 'null' }],
             description: 'Price per unit - null if not stated'
+          },
+          item_type: {
+            type: 'string',
+            enum: ['labour', 'material'],
+            description: 'Whether this is a labour or material line item'
           }
         },
-        required: ['description', 'quantity', 'unit', 'unit_price']
+        required: ['description', 'quantity', 'unit', 'unit_price', 'item_type']
       }
     },
     notes: {
@@ -78,6 +83,7 @@ export type InvoiceDraft = {
     quantity: number
     unit: 'hr' | 'ea' | 'm' | 'm2' | 'm3' | 'kg' | 'l'
     unit_price: number | null
+    item_type: 'labour' | 'material'
   }[]
   notes: string | null
   changes_summary: string[]

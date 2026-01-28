@@ -348,6 +348,7 @@ export interface InvoicePDFProps {
       unit: string
       unit_price: number
       line_total: number
+      item_type?: 'labour' | 'material'
     }[]
     subtotal: number
     gst_amount: number
@@ -413,6 +414,14 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
     displaySubtotal = invoice.subtotal / 1.1
     displayGst = displayTotal - displaySubtotal
   }
+
+  // Split items by type
+  const labourItems = invoice.line_items.filter(item => (item.item_type || 'labour') === 'labour')
+  const materialItems = invoice.line_items.filter(item => item.item_type === 'material')
+  const hasBothTypes = labourItems.length > 0 && materialItems.length > 0
+
+  const labourSubtotal = labourItems.reduce((sum, item) => sum + item.line_total, 0)
+  const materialSubtotal = materialItems.reduce((sum, item) => sum + item.line_total, 0)
 
   const qrCodeUrl = getPaymentQrUrl(businessProfile.payid, businessProfile.payment_link)
   const hasPaymentInfo = businessProfile.bank_bsb || businessProfile.bank_account || businessProfile.payid || businessProfile.payment_link
@@ -511,29 +520,101 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
         </View>
 
         {/* Items Table */}
-        <Text style={styles.itemsSectionLabel}>Items</Text>
-        <View style={styles.tableHeader}>
-          <Text style={[styles.tableHeaderText, styles.colItems]}>Items</Text>
-          <Text style={[styles.tableHeaderText, styles.colQty]}>Quantity</Text>
-          <Text style={[styles.tableHeaderText, styles.colPrice]}>Price</Text>
-          <Text style={[styles.tableHeaderText, styles.colAmount]}>Amount</Text>
-        </View>
-        {invoice.line_items.map((item, i) => (
-          <View key={i} style={styles.tableRow}>
-            <Text style={[styles.tableCell, styles.colItems]}>
-              {item.description}{invoice.gst_enabled ? ' *' : ''}
-            </Text>
-            <Text style={[styles.tableCell, styles.colQty]}>
-              {item.quantity} {item.unit}
-            </Text>
-            <Text style={[styles.tableCell, styles.colPrice]}>
-              {formatCurrency(item.unit_price)}
-            </Text>
-            <Text style={[styles.tableCell, styles.colAmount]}>
-              {formatCurrency(item.line_total)}
-            </Text>
-          </View>
-        ))}
+        {hasBothTypes ? (
+          <>
+            {/* Labour Section */}
+            <Text style={styles.itemsSectionLabel}>Labour</Text>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderText, styles.colItems]}>Items</Text>
+              <Text style={[styles.tableHeaderText, styles.colQty]}>Quantity</Text>
+              <Text style={[styles.tableHeaderText, styles.colPrice]}>Rate</Text>
+              <Text style={[styles.tableHeaderText, styles.colAmount]}>Amount</Text>
+            </View>
+            {labourItems.map((item, i) => (
+              <View key={i} style={styles.tableRow}>
+                <Text style={[styles.tableCell, styles.colItems]}>
+                  {item.description}{invoice.gst_enabled ? ' *' : ''}
+                </Text>
+                <Text style={[styles.tableCell, styles.colQty]}>
+                  {item.quantity} {item.unit}
+                </Text>
+                <Text style={[styles.tableCell, styles.colPrice]}>
+                  {formatCurrency(item.unit_price)}
+                </Text>
+                <Text style={[styles.tableCell, styles.colAmount]}>
+                  {formatCurrency(item.line_total)}
+                </Text>
+              </View>
+            ))}
+            <View style={styles.totalsContainer}>
+              <View style={styles.totalsBox}>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Labour Subtotal</Text>
+                  <Text style={styles.totalValue}>{formatCurrency(labourSubtotal)}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Materials Section */}
+            <Text style={[styles.itemsSectionLabel, { marginTop: 20 }]}>Materials</Text>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderText, styles.colItems]}>Items</Text>
+              <Text style={[styles.tableHeaderText, styles.colQty]}>Quantity</Text>
+              <Text style={[styles.tableHeaderText, styles.colPrice]}>Unit Price</Text>
+              <Text style={[styles.tableHeaderText, styles.colAmount]}>Amount</Text>
+            </View>
+            {materialItems.map((item, i) => (
+              <View key={i} style={styles.tableRow}>
+                <Text style={[styles.tableCell, styles.colItems]}>
+                  {item.description}{invoice.gst_enabled ? ' *' : ''}
+                </Text>
+                <Text style={[styles.tableCell, styles.colQty]}>
+                  {item.quantity} {item.unit}
+                </Text>
+                <Text style={[styles.tableCell, styles.colPrice]}>
+                  {formatCurrency(item.unit_price)}
+                </Text>
+                <Text style={[styles.tableCell, styles.colAmount]}>
+                  {formatCurrency(item.line_total)}
+                </Text>
+              </View>
+            ))}
+            <View style={styles.totalsContainer}>
+              <View style={styles.totalsBox}>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Materials Subtotal</Text>
+                  <Text style={styles.totalValue}>{formatCurrency(materialSubtotal)}</Text>
+                </View>
+              </View>
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.itemsSectionLabel}>Items</Text>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderText, styles.colItems]}>Items</Text>
+              <Text style={[styles.tableHeaderText, styles.colQty]}>Quantity</Text>
+              <Text style={[styles.tableHeaderText, styles.colPrice]}>Price</Text>
+              <Text style={[styles.tableHeaderText, styles.colAmount]}>Amount</Text>
+            </View>
+            {invoice.line_items.map((item, i) => (
+              <View key={i} style={styles.tableRow}>
+                <Text style={[styles.tableCell, styles.colItems]}>
+                  {item.description}{invoice.gst_enabled ? ' *' : ''}
+                </Text>
+                <Text style={[styles.tableCell, styles.colQty]}>
+                  {item.quantity} {item.unit}
+                </Text>
+                <Text style={[styles.tableCell, styles.colPrice]}>
+                  {formatCurrency(item.unit_price)}
+                </Text>
+                <Text style={[styles.tableCell, styles.colAmount]}>
+                  {formatCurrency(item.line_total)}
+                </Text>
+              </View>
+            ))}
+          </>
+        )}
 
         {/* Totals */}
         <View style={styles.totalsContainer}>

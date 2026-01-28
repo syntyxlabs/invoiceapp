@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Home, FileText, Building2, Users, Menu, X } from 'lucide-react'
+import { Home, FileText, Building2, Users, Package, Menu, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -18,6 +18,7 @@ const navItems = [
   { href: '/invoices', label: 'Invoices', icon: FileText },
   { href: '/profiles', label: 'Profiles', icon: Building2 },
   { href: '/clients', label: 'Clients', icon: Users },
+  { href: '/materials', label: 'Materials', icon: Package },
 ]
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {

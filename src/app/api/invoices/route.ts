@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
       unit_price: item.unit_price || 0,
       line_total: (item.quantity * (item.unit_price || 0)),
       sort_order: index,
+      item_type: item.item_type || 'labour',
     }))
 
     if (lineItemsToInsert.length > 0) {

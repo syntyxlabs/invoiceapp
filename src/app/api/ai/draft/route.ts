@@ -75,6 +75,13 @@ RULES:
 9. If customer name not stated, use "Customer"
 10. If email not stated, use empty array []
 
+ITEM TYPE CLASSIFICATION:
+Each line item must have item_type: "labour" or "material".
+- unit "hr" = ALWAYS "labour"
+- Material indicators: bags, sheets, rolls, fittings, fixtures, parts, supplies, cement, timber, pipe, cable, wire, plaster, paint, tiles, screws, bolts, nails, brackets
+- Labour indicators: hours, installation, labour, repair, service, callout, consultation, inspection
+- When in doubt, default to "labour"
+
 ${businessProfile?.default_hourly_rate ? `Business default hourly rate: $${businessProfile.default_hourly_rate}/hr` : ''}
 
 changes_summary should be empty array for initial drafts.`

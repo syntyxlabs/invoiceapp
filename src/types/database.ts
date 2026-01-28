@@ -463,6 +463,7 @@ export interface Database {
           unit_price: number
           line_total: number
           sort_order: number
+          item_type: 'labour' | 'material'
           created_at: string
         }
         Insert: {
@@ -474,6 +475,7 @@ export interface Database {
           unit_price: number
           line_total: number
           sort_order?: number
+          item_type?: 'labour' | 'material'
           created_at?: string
         }
         Update: {
@@ -485,6 +487,7 @@ export interface Database {
           unit_price?: number
           line_total?: number
           sort_order?: number
+          item_type?: 'labour' | 'material'
           created_at?: string
         }
         Relationships: [
@@ -534,6 +537,53 @@ export interface Database {
         Relationships: [
           {
             foreignKeyName: 'inv_customers_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'inv_users'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      inv_materials: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string | null
+          default_unit: 'ea' | 'm' | 'm2' | 'm3' | 'kg' | 'l'
+          default_unit_price: number | null
+          category: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string | null
+          default_unit?: 'ea' | 'm' | 'm2' | 'm3' | 'kg' | 'l'
+          default_unit_price?: number | null
+          category?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string | null
+          default_unit?: 'ea' | 'm' | 'm2' | 'm3' | 'kg' | 'l'
+          default_unit_price?: number | null
+          category?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'inv_materials_user_id_fkey'
             columns: ['user_id']
             isOneToOne: false
             referencedRelation: 'inv_users'
@@ -629,3 +679,8 @@ export type InvoiceStatus = Database['public']['Enums']['invoice_status']
 export type InvoicePhoto = Tables<'inv_photos'>
 export type InvoicePhotoInsert = InsertTables<'inv_photos'>
 export type InvoicePhotoUpdate = UpdateTables<'inv_photos'>
+
+// Material types
+export type Material = Tables<'inv_materials'>
+export type MaterialInsert = InsertTables<'inv_materials'>
+export type MaterialUpdate = UpdateTables<'inv_materials'>

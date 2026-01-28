@@ -30,13 +30,17 @@ RULES:
 5. NEVER add new line items unless user explicitly requests it
 6. NEVER remove line items unless user explicitly requests it
 7. Populate changes_summary with human-readable descriptions of changes made
+8. PRESERVE item_type ("labour" or "material") unless explicitly asked to change
+9. Support type change commands like "make X a material", "that's not labour, it's materials", "change cement to material"
+10. New items added via correction should follow the same classification rules: hr=labour, bags/sheets/parts/supplies=material, default to labour
 
 Example changes_summary entries:
 - "Changed labour hours from 2 to 2.5"
 - "Removed callout fee line item"
 - "Updated customer name to John Smith"
 - "Split labour into two items: install and testing"
-- "Changed customer email to new@example.com"`
+- "Changed customer email to new@example.com"
+- "Changed cement from labour to material"`
         },
         {
           role: 'user',
