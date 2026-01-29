@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
       model: 'whisper-1',
+      language: 'en',
       prompt: 'Australian tradie invoicing. Terms: PayID, BSB, ABN, labour, callout, electrician, plumber',
     })
 
