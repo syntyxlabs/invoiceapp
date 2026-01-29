@@ -14,7 +14,7 @@ import type { InvoiceDraft } from '@/lib/openai/schemas'
 
 export default function EditInvoicePage() {
   const router = useRouter()
-  const { draft, draftId, photos, originalTranscript, clearDraft, setPhotos } = useInvoiceDraftStore()
+  const { draft, draftId, photos, originalTranscript, selectedProfileId, clearDraft, setPhotos } = useInvoiceDraftStore()
   const { profiles } = useBusinessProfile()
 
   const [showSendDialog, setShowSendDialog] = useState(false)
@@ -22,8 +22,10 @@ export default function EditInvoicePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [sendSuccess, setSendSuccess] = useState(false)
 
-  // Get the default business profile
-  const defaultProfile = profiles.find(p => p.is_default) || profiles[0]
+  // Get the selected business profile (from store) or fall back to default
+  const selectedProfile = selectedProfileId
+    ? profiles.find(p => p.id === selectedProfileId)
+    : profiles.find(p => p.is_default) || profiles[0]
 
   // Redirect to new invoice page if no draft exists (but not during send success)
   useEffect(() => {
@@ -54,7 +56,7 @@ export default function EditInvoicePage() {
   }, [invoiceToSend])
 
   const handleSave = async (invoice: InvoiceDraft) => {
-    if (!defaultProfile) {
+    if (!selectedProfile) {
       alert('Please create a business profile before saving invoices.')
       router.push('/profiles/new')
       return
@@ -76,7 +78,7 @@ export default function EditInvoicePage() {
             storage_path: p.storage_path,
             filename: p.filename,
           })),
-          businessProfileId: defaultProfile.id,
+          businessProfileId: selectedProfile.id,
         }),
       })
 
@@ -107,7 +109,7 @@ export default function EditInvoicePage() {
     }
 
     // Validate we have a business profile
-    if (!defaultProfile) {
+    if (!selectedProfile) {
       alert('Please create a business profile before sending invoices.')
       router.push('/profiles/new')
       return
@@ -118,7 +120,7 @@ export default function EditInvoicePage() {
   }
 
   const handleConfirmSend = async () => {
-    if (!invoiceToSend || !defaultProfile) return
+    if (!invoiceToSend || !selectedProfile) return
 
     try {
       // Step 1: Save invoice to database first
@@ -135,7 +137,7 @@ export default function EditInvoicePage() {
             storage_path: p.storage_path,
             filename: p.filename,
           })),
-          businessProfileId: defaultProfile.id,
+          businessProfileId: selectedProfile.id,
         }),
       })
 
@@ -179,7 +181,7 @@ export default function EditInvoicePage() {
       <SendConfirmationDialog
         open={true}
         onOpenChange={() => {}}
-        invoiceNumber={invoiceToSend.invoice.invoice_number || `${defaultProfile?.sequence?.prefix || 'INV'}-${Date.now().toString().slice(-6)}`}
+        invoiceNumber={invoiceToSend.invoice.invoice_number || `${selectedProfile?.sequence?.prefix || 'INV'}-${Date.now().toString().slice(-6)}`}
         customerEmails={invoiceToSend.customer.emails || []}
         total={totals.total}
         onConfirm={handleConfirmSend}
@@ -254,7 +256,7 @@ export default function EditInvoicePage() {
         onPhotosChange={setPhotos}
         onSave={handleSave}
         onSend={handleSend}
-        businessProfile={defaultProfile}
+        businessProfile={selectedProfile}
       />
 
       {/* Send Confirmation Dialog */}
@@ -262,7 +264,7 @@ export default function EditInvoicePage() {
         <SendConfirmationDialog
           open={showSendDialog}
           onOpenChange={setShowSendDialog}
-          invoiceNumber={invoiceToSend.invoice.invoice_number || `${defaultProfile?.sequence?.prefix || 'INV'}-${Date.now().toString().slice(-6)}`}
+          invoiceNumber={invoiceToSend.invoice.invoice_number || `${selectedProfile?.sequence?.prefix || 'INV'}-${Date.now().toString().slice(-6)}`}
           customerEmails={invoiceToSend.customer.emails || []}
           total={totals.total}
           onConfirm={handleConfirmSend}

@@ -13,9 +13,11 @@ interface InvoiceDraftState {
   draft: InvoiceDraft | null
   photos: Photo[]
   originalTranscript: string | null
+  selectedProfileId: string | null
   setDraft: (draft: InvoiceDraft) => void
   setPhotos: (photos: Photo[]) => void
   setTranscript: (transcript: string) => void
+  setSelectedProfileId: (profileId: string) => void
   clearDraft: () => void
 }
 
@@ -24,6 +26,7 @@ export const useInvoiceDraftStore = create<InvoiceDraftState>((set) => ({
   draft: null,
   photos: [],
   originalTranscript: null,
+  selectedProfileId: null,
   setDraft: (draft) => set((state) => ({
     draft,
     // Generate draftId if not exists
@@ -31,5 +34,6 @@ export const useInvoiceDraftStore = create<InvoiceDraftState>((set) => ({
   })),
   setPhotos: (photos) => set({ photos }),
   setTranscript: (transcript) => set({ originalTranscript: transcript }),
-  clearDraft: () => set({ draft: null, draftId: null, photos: [], originalTranscript: null }),
+  setSelectedProfileId: (profileId) => set({ selectedProfileId: profileId }),
+  clearDraft: () => set({ draft: null, draftId: null, photos: [], originalTranscript: null, selectedProfileId: null }),
 }))

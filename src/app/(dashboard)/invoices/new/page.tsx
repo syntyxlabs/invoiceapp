@@ -1,13 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Mic, FileText } from 'lucide-react'
+import { ArrowLeft, Loader2, Mic, FileText, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { VoiceRecorder } from '@/components/invoice'
 import { useInvoiceDraftStore } from '@/stores/invoice-draft-store'
 import { useBusinessProfile } from '@/hooks/useBusinessProfile'
@@ -15,17 +22,26 @@ import type { InvoiceDraft } from '@/lib/openai/schemas'
 
 export default function NewInvoicePage() {
   const router = useRouter()
-  const { setDraft, setTranscript } = useInvoiceDraftStore()
-  const { profiles } = useBusinessProfile()
+  const { setDraft, setTranscript, setSelectedProfileId } = useInvoiceDraftStore()
+  const { profiles, isLoading: profilesLoading } = useBusinessProfile()
 
+  const [localProfileId, setLocalProfileId] = useState<string | null>(null)
   const [transcript, setLocalTranscript] = useState('')
   const [textInput, setTextInput] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'voice' | 'text'>('voice')
 
-  // Get the default business profile
-  const defaultProfile = profiles.find(p => p.is_default) || profiles[0]
+  // Initialize selected profile to the default when profiles load
+  useEffect(() => {
+    if (profiles.length > 0 && !localProfileId) {
+      const defaultProfile = profiles.find(p => p.is_default) || profiles[0]
+      setLocalProfileId(defaultProfile.id)
+    }
+  }, [profiles, localProfileId])
+
+  // Get the currently selected profile
+  const selectedProfile = profiles.find(p => p.id === localProfileId) || profiles[0]
 
   const handleTranscriptReady = (text: string) => {
     setLocalTranscript(text)
@@ -49,8 +65,8 @@ export default function NewInvoicePage() {
         },
         body: JSON.stringify({
           transcript: inputText,
-          businessProfile: defaultProfile ? {
-            default_hourly_rate: defaultProfile.default_hourly_rate,
+          businessProfile: selectedProfile ? {
+            default_hourly_rate: selectedProfile.default_hourly_rate,
           } : null,
         }),
       })
@@ -62,9 +78,12 @@ export default function NewInvoicePage() {
 
       const draft: InvoiceDraft = await response.json()
 
-      // Store the draft and transcript
+      // Store the draft, transcript, and selected profile
       setDraft(draft)
       setTranscript(inputText)
+      if (localProfileId) {
+        setSelectedProfileId(localProfileId)
+      }
 
       // Navigate to the edit page
       router.push('/invoices/new/edit')
@@ -195,23 +214,65 @@ export default function NewInvoicePage() {
         </CardContent>
       </Card>
 
-      {defaultProfile && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Business Profile
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="font-medium">{defaultProfile.trading_name}</p>
-            {defaultProfile.default_hourly_rate && (
-              <p className="text-sm text-muted-foreground">
-                Default rate: ${defaultProfile.default_hourly_rate}/hr
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Business Profile
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {profilesLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading profiles...
+            </div>
+          ) : profiles.length === 0 ? (
+            <div className="text-sm text-muted-foreground">
+              No business profiles found.{' '}
+              <Link href="/profiles/new" className="text-primary hover:underline">
+                Create one
+              </Link>
+            </div>
+          ) : profiles.length === 1 ? (
+            <div>
+              <p className="font-medium">{selectedProfile?.trading_name}</p>
+              {selectedProfile?.default_hourly_rate && (
+                <p className="text-sm text-muted-foreground">
+                  Default rate: ${selectedProfile.default_hourly_rate}/hr
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Select
+                value={localProfileId || ''}
+                onValueChange={setLocalProfileId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a business profile" />
+                </SelectTrigger>
+                <SelectContent>
+                  {profiles.map((profile) => (
+                    <SelectItem key={profile.id} value={profile.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{profile.trading_name}</span>
+                        {profile.is_default && (
+                          <span className="text-xs text-muted-foreground">(default)</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedProfile?.default_hourly_rate && (
+                <p className="text-sm text-muted-foreground">
+                  Default rate: ${selectedProfile.default_hourly_rate}/hr
+                </p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-3">
