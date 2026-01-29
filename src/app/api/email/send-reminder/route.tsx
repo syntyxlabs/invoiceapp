@@ -139,10 +139,22 @@ export async function POST(request: NextRequest) {
       businessName: pdfData.businessProfile.trading_name,
       customerName: pdfData.invoice.customer_name,
       total: pdfData.invoice.total,
+      subtotal: pdfData.invoice.subtotal,
+      gstAmount: pdfData.invoice.gst_amount,
+      gstEnabled: pdfData.invoice.gst_enabled,
       dueDate: pdfData.invoice.due_date,
+      invoiceDate: pdfData.invoice.invoice_date,
+      lineItems: pdfData.invoice.line_items.map(item => ({
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit,
+        unit_price: item.unit_price,
+        line_total: item.line_total,
+      })),
       daysOverdue: daysOverdue > 0 ? daysOverdue : undefined,
       pdfBuffer: Buffer.from(pdfBuffer),
       paymentLink: pdfData.businessProfile.payment_link,
+      abn: pdfData.businessProfile.abn,
       replyTo: user.email!
     })
 

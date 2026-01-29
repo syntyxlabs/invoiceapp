@@ -62,9 +62,21 @@ export async function POST(request: NextRequest) {
       businessName: businessProfile.trading_name,
       customerName: invoice.customer_name,
       total: invoice.total,
+      subtotal: invoice.subtotal,
+      gstAmount: invoice.gst_amount,
+      gstEnabled: invoice.gst_enabled ?? true,
       dueDate: invoice.due_date,
+      invoiceDate: invoice.invoice_date,
+      lineItems: invoice.line_items.map(item => ({
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit,
+        unit_price: item.unit_price,
+        line_total: item.unit_price !== null ? item.quantity * item.unit_price : null,
+      })),
       pdfBuffer: Buffer.from(pdfBuffer),
       paymentLink: businessProfile.payment_link,
+      abn: businessProfile.abn,
       replyTo: replyTo || user.email!
     })
 
@@ -207,9 +219,21 @@ async function sendFromDatabase(
     businessName: pdfData.businessProfile.trading_name,
     customerName: pdfData.invoice.customer_name,
     total: pdfData.invoice.total,
+    subtotal: pdfData.invoice.subtotal,
+    gstAmount: pdfData.invoice.gst_amount,
+    gstEnabled: pdfData.invoice.gst_enabled,
     dueDate: pdfData.invoice.due_date,
+    invoiceDate: pdfData.invoice.invoice_date,
+    lineItems: pdfData.invoice.line_items.map(item => ({
+      description: item.description,
+      quantity: item.quantity,
+      unit: item.unit,
+      unit_price: item.unit_price,
+      line_total: item.line_total,
+    })),
     pdfBuffer: Buffer.from(pdfBuffer),
     paymentLink: pdfData.businessProfile.payment_link,
+    abn: pdfData.businessProfile.abn,
     replyTo: userEmail
   })
 

@@ -10,16 +10,56 @@ function getResendClient() {
 
 const fromEmail = process.env.RESEND_FROM_EMAIL || 'invoices@syntyxlabs.com'
 
+interface LineItemSummary {
+  description: string
+  quantity: number
+  unit: string
+  unit_price: number | null
+  line_total: number | null
+}
+
 interface SendInvoiceEmailParams {
   to: string[]
   invoiceNumber: string
   businessName: string
   customerName: string
   total: number
+  subtotal: number
+  gstAmount: number | null
+  gstEnabled: boolean
   dueDate: string
+  invoiceDate: string
+  lineItems: LineItemSummary[]
   pdfBuffer: Buffer
   paymentLink?: string | null
+  abn?: string | null
   replyTo: string
+}
+
+function formatCurrency(amount: number | null): string {
+  if (amount === null) return '-'
+  return `$${amount.toFixed(2)}`
+}
+
+function formatDate(date: string): string {
+  return new Date(date).toLocaleDateString('en-AU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+}
+
+function getUnitLabel(unit: string): string {
+  const labels: Record<string, string> = {
+    hr: 'hr',
+    ea: 'ea',
+    m: 'm',
+    m2: 'm²',
+    m3: 'm³',
+    kg: 'kg',
+    l: 'L',
+  }
+  return labels[unit] || unit
 }
 
 export async function sendInvoiceEmail({
@@ -28,16 +68,34 @@ export async function sendInvoiceEmail({
   businessName,
   customerName,
   total,
+  subtotal,
+  gstAmount,
+  gstEnabled,
   dueDate,
+  invoiceDate,
+  lineItems,
   pdfBuffer,
   paymentLink,
+  abn,
   replyTo
 }: SendInvoiceEmailParams) {
-  const formattedDueDate = new Date(dueDate).toLocaleDateString('en-AU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
+  const formattedDueDate = formatDate(dueDate)
+  const formattedInvoiceDate = formatDate(invoiceDate)
+
+  // Build line items HTML
+  const lineItemsHtml = lineItems.map(item => `
+    <tr>
+      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+        ${item.description}
+        <span style="color: #6b7280; font-size: 13px;">
+          (${item.quantity} ${getUnitLabel(item.unit)} × ${formatCurrency(item.unit_price)})
+        </span>
+      </td>
+      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right; white-space: nowrap;">
+        ${formatCurrency(item.line_total)}
+      </td>
+    </tr>
+  `).join('')
 
   const response = await getResendClient().emails.send({
     from: `${businessName} <${fromEmail}>`,
@@ -51,41 +109,107 @@ export async function sendInvoiceEmail({
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
-      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #f9fafb; padding: 30px; border-radius: 8px;">
-          <h1 style="margin: 0 0 20px; font-size: 24px; color: #1f2937;">
-            Invoice ${invoiceNumber}
-          </h1>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f3f4f6;">
+        <div style="max-width: 600px; margin: 0 auto; background: #ffffff;">
 
-          <p style="margin: 0 0 10px;">Hi ${customerName},</p>
+          <!-- Header Banner -->
+          <div style="background: #2563eb; padding: 30px 40px; text-align: center;">
+            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
+              ${businessName}
+            </h1>
+            <p style="margin: 8px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">
+              Tax Invoice
+            </p>
+          </div>
 
-          <p style="margin: 0 0 20px;">
-            Please find attached invoice <strong>${invoiceNumber}</strong> for
-            <strong style="font-size: 18px;">$${total.toFixed(2)} AUD</strong>.
-          </p>
+          <!-- Amount Section -->
+          <div style="padding: 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+            <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">Amount Due</p>
+            <p style="margin: 0; font-size: 42px; font-weight: 700; color: #111827;">
+              $${total.toFixed(2)}
+            </p>
+            <p style="margin: 12px 0 0; color: #6b7280; font-size: 14px;">
+              Due by ${formattedDueDate}
+            </p>
+          </div>
 
-          <p style="margin: 0 0 20px;">
-            Payment is due by <strong>${formattedDueDate}</strong>.
-          </p>
-
+          <!-- Pay Button -->
           ${paymentLink ? `
-          <div style="text-align: center; margin: 30px 0;">
+          <div style="padding: 30px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
             <a href="${paymentLink}"
-               style="display: inline-block; background: #2563eb; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold;">
-              Pay Now
+               style="display: inline-block; background: #2563eb; color: #ffffff; padding: 16px 48px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+              Pay Invoice
             </a>
           </div>
           ` : ''}
 
-          <p style="margin: 20px 0 0; color: #6b7280; font-size: 14px;">
-            Thank you for your business!
-          </p>
+          <!-- Invoice Details -->
+          <div style="padding: 30px 40px; border-bottom: 1px solid #e5e7eb;">
+            <table style="width: 100%; font-size: 14px;">
+              <tr>
+                <td style="padding: 4px 0; color: #6b7280;">Invoice Number</td>
+                <td style="padding: 4px 0; text-align: right; font-weight: 500;">${invoiceNumber}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #6b7280;">Invoice Date</td>
+                <td style="padding: 4px 0; text-align: right;">${formattedInvoiceDate}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #6b7280;">Customer</td>
+                <td style="padding: 4px 0; text-align: right;">${customerName}</td>
+              </tr>
+            </table>
+          </div>
 
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <!-- Invoice Summary -->
+          <div style="padding: 30px 40px;">
+            <h2 style="margin: 0 0 20px; font-size: 16px; font-weight: 600; color: #111827;">
+              Invoice Summary
+            </h2>
 
-          <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-            Sent via Syntyx Labs Invoices
-          </p>
+            <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+              ${lineItemsHtml}
+
+              <!-- Subtotal -->
+              <tr>
+                <td style="padding: 12px 0; color: #6b7280;">Subtotal</td>
+                <td style="padding: 12px 0; text-align: right;">${formatCurrency(subtotal)}</td>
+              </tr>
+
+              <!-- GST -->
+              ${gstEnabled ? `
+              <tr>
+                <td style="padding: 4px 0; color: #6b7280;">GST (10%)</td>
+                <td style="padding: 4px 0; text-align: right;">${formatCurrency(gstAmount)}</td>
+              </tr>
+              ` : ''}
+
+              <!-- Total -->
+              <tr>
+                <td style="padding: 16px 0 0; font-size: 16px; font-weight: 600;">Total Due</td>
+                <td style="padding: 16px 0 0; text-align: right; font-size: 18px; font-weight: 700; color: #111827;">
+                  $${total.toFixed(2)}
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Message -->
+          <div style="padding: 0 40px 30px;">
+            <p style="margin: 0; padding: 20px; background: #f9fafb; border-radius: 8px; color: #6b7280; font-size: 14px;">
+              Thank you for your business! Please find the full invoice attached as a PDF.
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="padding: 30px 40px; background: #f9fafb; text-align: center; border-top: 1px solid #e5e7eb;">
+            <p style="margin: 0; font-weight: 600; color: #374151;">${businessName}</p>
+            ${abn ? `<p style="margin: 4px 0 0; color: #6b7280; font-size: 13px;">ABN ${abn}</p>` : ''}
+            <p style="margin: 16px 0 0; color: #9ca3af; font-size: 12px;">
+              Sent via Syntyx Labs Invoices
+            </p>
+          </div>
+
         </div>
       </body>
       </html>
@@ -109,10 +233,16 @@ interface SendReminderEmailParams {
   businessName: string
   customerName: string
   total: number
+  subtotal: number
+  gstAmount: number | null
+  gstEnabled: boolean
   dueDate: string
+  invoiceDate: string
+  lineItems: LineItemSummary[]
   daysOverdue?: number
   pdfBuffer: Buffer
   paymentLink?: string | null
+  abn?: string | null
   replyTo: string
 }
 
@@ -122,15 +252,45 @@ export async function sendReminderEmail({
   businessName,
   customerName,
   total,
+  subtotal,
+  gstAmount,
+  gstEnabled,
+  dueDate,
+  invoiceDate,
+  lineItems,
   daysOverdue,
   pdfBuffer,
   paymentLink,
+  abn,
   replyTo
 }: SendReminderEmailParams) {
   const isOverdue = daysOverdue && daysOverdue > 0
+  const formattedDueDate = formatDate(dueDate)
+  const formattedInvoiceDate = formatDate(invoiceDate)
+
   const subject = isOverdue
     ? `Reminder: Invoice ${invoiceNumber} is ${daysOverdue} days overdue`
     : `Reminder: Invoice ${invoiceNumber} from ${businessName}`
+
+  const headerColor = isOverdue ? '#dc2626' : '#2563eb'
+  const statusText = isOverdue
+    ? `Overdue by ${daysOverdue} days`
+    : `Due ${formattedDueDate}`
+
+  // Build line items HTML
+  const lineItemsHtml = lineItems.map(item => `
+    <tr>
+      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+        ${item.description}
+        <span style="color: #6b7280; font-size: 13px;">
+          (${item.quantity} ${getUnitLabel(item.unit)} × ${formatCurrency(item.unit_price)})
+        </span>
+      </td>
+      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right; white-space: nowrap;">
+        ${formatCurrency(item.line_total)}
+      </td>
+    </tr>
+  `).join('')
 
   const response = await getResendClient().emails.send({
     from: `${businessName} <${fromEmail}>`,
@@ -142,33 +302,111 @@ export async function sendReminderEmail({
       <html>
       <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
-      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: ${isOverdue ? '#fef2f2' : '#f9fafb'}; padding: 30px; border-radius: 8px;">
-          <h1 style="margin: 0 0 20px; font-size: 24px; color: ${isOverdue ? '#dc2626' : '#1f2937'};">
-            ${isOverdue ? 'Payment Overdue' : 'Payment Reminder'}
-          </h1>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f3f4f6;">
+        <div style="max-width: 600px; margin: 0 auto; background: #ffffff;">
 
-          <p style="margin: 0 0 10px;">Hi ${customerName},</p>
+          <!-- Header Banner -->
+          <div style="background: ${headerColor}; padding: 30px 40px; text-align: center;">
+            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
+              ${businessName}
+            </h1>
+            <p style="margin: 8px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">
+              ${isOverdue ? 'Payment Overdue' : 'Payment Reminder'}
+            </p>
+          </div>
 
-          <p style="margin: 0 0 20px;">
-            This is a friendly reminder that invoice <strong>${invoiceNumber}</strong>
-            for <strong>$${total.toFixed(2)} AUD</strong>
-            ${isOverdue ? `is now ${daysOverdue} days overdue.` : 'is due soon.'}
-          </p>
+          <!-- Amount Section -->
+          <div style="padding: 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+            <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">Amount Due</p>
+            <p style="margin: 0; font-size: 42px; font-weight: 700; color: #111827;">
+              $${total.toFixed(2)}
+            </p>
+            <p style="margin: 12px 0 0; color: ${isOverdue ? '#dc2626' : '#6b7280'}; font-size: 14px; font-weight: ${isOverdue ? '600' : '400'};">
+              ${statusText}
+            </p>
+          </div>
 
+          <!-- Pay Button -->
           ${paymentLink ? `
-          <div style="text-align: center; margin: 30px 0;">
+          <div style="padding: 30px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
             <a href="${paymentLink}"
-               style="display: inline-block; background: #2563eb; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold;">
-              Pay Now
+               style="display: inline-block; background: ${headerColor}; color: #ffffff; padding: 16px 48px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+              Pay Invoice
             </a>
           </div>
           ` : ''}
 
-          <p style="margin: 20px 0 0; color: #6b7280; font-size: 14px;">
-            Please let us know if you have any questions.
-          </p>
+          <!-- Invoice Details -->
+          <div style="padding: 30px 40px; border-bottom: 1px solid #e5e7eb;">
+            <table style="width: 100%; font-size: 14px;">
+              <tr>
+                <td style="padding: 4px 0; color: #6b7280;">Invoice Number</td>
+                <td style="padding: 4px 0; text-align: right; font-weight: 500;">${invoiceNumber}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #6b7280;">Invoice Date</td>
+                <td style="padding: 4px 0; text-align: right;">${formattedInvoiceDate}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #6b7280;">Customer</td>
+                <td style="padding: 4px 0; text-align: right;">${customerName}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Invoice Summary -->
+          <div style="padding: 30px 40px;">
+            <h2 style="margin: 0 0 20px; font-size: 16px; font-weight: 600; color: #111827;">
+              Invoice Summary
+            </h2>
+
+            <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+              ${lineItemsHtml}
+
+              <!-- Subtotal -->
+              <tr>
+                <td style="padding: 12px 0; color: #6b7280;">Subtotal</td>
+                <td style="padding: 12px 0; text-align: right;">${formatCurrency(subtotal)}</td>
+              </tr>
+
+              <!-- GST -->
+              ${gstEnabled ? `
+              <tr>
+                <td style="padding: 4px 0; color: #6b7280;">GST (10%)</td>
+                <td style="padding: 4px 0; text-align: right;">${formatCurrency(gstAmount)}</td>
+              </tr>
+              ` : ''}
+
+              <!-- Total -->
+              <tr>
+                <td style="padding: 16px 0 0; font-size: 16px; font-weight: 600;">Total Due</td>
+                <td style="padding: 16px 0 0; text-align: right; font-size: 18px; font-weight: 700; color: #111827;">
+                  $${total.toFixed(2)}
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Message -->
+          <div style="padding: 0 40px 30px;">
+            <p style="margin: 0; padding: 20px; background: ${isOverdue ? '#fef2f2' : '#f9fafb'}; border-radius: 8px; color: ${isOverdue ? '#991b1b' : '#6b7280'}; font-size: 14px;">
+              ${isOverdue
+                ? 'This invoice is now overdue. Please arrange payment at your earliest convenience or contact us if you have any questions.'
+                : 'This is a friendly reminder that payment is due soon. Please find the invoice attached.'}
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="padding: 30px 40px; background: #f9fafb; text-align: center; border-top: 1px solid #e5e7eb;">
+            <p style="margin: 0; font-weight: 600; color: #374151;">${businessName}</p>
+            ${abn ? `<p style="margin: 4px 0 0; color: #6b7280; font-size: 13px;">ABN ${abn}</p>` : ''}
+            <p style="margin: 16px 0 0; color: #9ca3af; font-size: 12px;">
+              Sent via Syntyx Labs Invoices
+            </p>
+          </div>
+
         </div>
       </body>
       </html>
