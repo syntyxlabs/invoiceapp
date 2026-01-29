@@ -33,6 +33,7 @@ interface SendInvoiceEmailParams {
   pdfBuffer: Buffer
   paymentLink?: string | null
   abn?: string | null
+  logoUrl?: string | null
   replyTo: string
 }
 
@@ -77,6 +78,7 @@ export async function sendInvoiceEmail({
   pdfBuffer,
   paymentLink,
   abn,
+  logoUrl,
   replyTo
 }: SendInvoiceEmailParams) {
   const formattedDueDate = formatDate(dueDate)
@@ -114,6 +116,9 @@ export async function sendInvoiceEmail({
 
           <!-- Header Banner -->
           <div style="background: #2563eb; padding: 30px 40px; text-align: center;">
+            ${logoUrl ? `
+            <img src="${logoUrl}" alt="${businessName}" style="max-height: 60px; max-width: 200px; margin-bottom: 12px; border-radius: 4px;" />
+            ` : ''}
             <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
               ${businessName}
             </h1>
@@ -243,6 +248,7 @@ interface SendReminderEmailParams {
   pdfBuffer: Buffer
   paymentLink?: string | null
   abn?: string | null
+  logoUrl?: string | null
   replyTo: string
 }
 
@@ -262,6 +268,7 @@ export async function sendReminderEmail({
   pdfBuffer,
   paymentLink,
   abn,
+  logoUrl,
   replyTo
 }: SendReminderEmailParams) {
   const isOverdue = daysOverdue && daysOverdue > 0
@@ -309,6 +316,9 @@ export async function sendReminderEmail({
 
           <!-- Header Banner -->
           <div style="background: ${headerColor}; padding: 30px 40px; text-align: center;">
+            ${logoUrl ? `
+            <img src="${logoUrl}" alt="${businessName}" style="max-height: 60px; max-width: 200px; margin-bottom: 12px; border-radius: 4px;" />
+            ` : ''}
             <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
               ${businessName}
             </h1>

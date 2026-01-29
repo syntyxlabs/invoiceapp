@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
       pdfBuffer: Buffer.from(pdfBuffer),
       paymentLink: businessProfile.payment_link,
       abn: businessProfile.abn,
+      logoUrl: businessProfile.logo_url,
       replyTo: replyTo || user.email!
     })
 
@@ -234,6 +235,7 @@ async function sendFromDatabase(
     pdfBuffer: Buffer.from(pdfBuffer),
     paymentLink: pdfData.businessProfile.payment_link,
     abn: pdfData.businessProfile.abn,
+    logoUrl: pdfData.businessProfile.logo_url,
     replyTo: userEmail
   })
 
