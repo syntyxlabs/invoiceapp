@@ -10,6 +10,60 @@ function getResendClient() {
 
 const fromEmail = process.env.RESEND_FROM_EMAIL || 'invoices@syntyxlabs.com'
 
+// Fetch logo image and return as base64 string for CID attachment
+export async function fetchLogoAsBuffer(url: string | null | undefined): Promise<{
+  base64: string
+  contentType: string
+} | null> {
+  if (!url) {
+    console.log('[fetchLogoAsBuffer] No URL provided')
+    return null
+  }
+
+  // Skip base64 data URLs - they can't be fetched
+  if (url.startsWith('data:')) {
+    console.log('[fetchLogoAsBuffer] Skipping base64 data URL')
+    return null
+  }
+
+  console.log('[fetchLogoAsBuffer] Fetching logo from:', url.substring(0, 100))
+
+  try {
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        'Accept': 'image/*',
+      }
+    })
+
+    if (!response.ok) {
+      console.error('[fetchLogoAsBuffer] Failed to fetch:', response.status, response.statusText)
+      return null
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/png'
+    const arrayBuffer = await response.arrayBuffer()
+
+    console.log('[fetchLogoAsBuffer] Success - size:', arrayBuffer.byteLength, 'type:', contentType)
+
+    if (arrayBuffer.byteLength === 0) {
+      console.error('[fetchLogoAsBuffer] Empty response')
+      return null
+    }
+
+    // Convert to base64 string for Resend attachment
+    const base64 = Buffer.from(arrayBuffer).toString('base64')
+
+    return {
+      base64,
+      contentType
+    }
+  } catch (error) {
+    console.error('[fetchLogoAsBuffer] Error:', error)
+    return null
+  }
+}
+
 interface LineItemSummary {
   description: string
   quantity: number
@@ -33,7 +87,8 @@ interface SendInvoiceEmailParams {
   pdfBuffer: Buffer
   paymentLink?: string | null
   abn?: string | null
-  logoUrl?: string | null
+  logoBase64?: string | null
+  logoContentType?: string | null
   replyTo: string
 }
 
@@ -78,7 +133,8 @@ export async function sendInvoiceEmail({
   pdfBuffer,
   paymentLink,
   abn,
-  logoUrl,
+  logoBase64,
+  logoContentType,
   replyTo
 }: SendInvoiceEmailParams) {
   const formattedDueDate = formatDate(dueDate)
@@ -116,8 +172,8 @@ export async function sendInvoiceEmail({
 
           <!-- Header Banner -->
           <div style="background: #2563eb; padding: 30px 40px; text-align: center;">
-            ${logoUrl ? `
-            <img src="${logoUrl}" alt="${businessName}" style="max-height: 60px; max-width: 200px; margin-bottom: 12px; border-radius: 4px;" />
+            ${logoBase64 ? `
+            <img src="cid:business-logo" alt="${businessName}" style="max-height: 60px; max-width: 200px; margin-bottom: 12px; border-radius: 4px;" />
             ` : ''}
             <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
               ${businessName}
@@ -133,7 +189,7 @@ export async function sendInvoiceEmail({
             <p style="margin: 0; font-size: 42px; font-weight: 700; color: #111827;">
               $${total.toFixed(2)}
             </p>
-            <p style="margin: 12px 0 0; color: #6b7280; font-size: 14px;">
+            <p style="margin: 12px 0 0; color: #dc2626; font-size: 14px; font-weight: 600;">
               Due by ${formattedDueDate}
             </p>
           </div>
@@ -220,6 +276,12 @@ export async function sendInvoiceEmail({
       </html>
     `,
     attachments: [
+      ...(logoBase64 ? [{
+        content: logoBase64,
+        filename: 'logo.png',
+        contentType: logoContentType || 'image/png',
+        contentId: 'business-logo'
+      }] : []),
       {
         content: pdfBuffer,
         filename: `Invoice-${invoiceNumber}.pdf`,
@@ -248,7 +310,8 @@ interface SendReminderEmailParams {
   pdfBuffer: Buffer
   paymentLink?: string | null
   abn?: string | null
-  logoUrl?: string | null
+  logoBase64?: string | null
+  logoContentType?: string | null
   replyTo: string
 }
 
@@ -268,7 +331,8 @@ export async function sendReminderEmail({
   pdfBuffer,
   paymentLink,
   abn,
-  logoUrl,
+  logoBase64,
+  logoContentType,
   replyTo
 }: SendReminderEmailParams) {
   const isOverdue = daysOverdue && daysOverdue > 0
@@ -316,8 +380,8 @@ export async function sendReminderEmail({
 
           <!-- Header Banner -->
           <div style="background: ${headerColor}; padding: 30px 40px; text-align: center;">
-            ${logoUrl ? `
-            <img src="${logoUrl}" alt="${businessName}" style="max-height: 60px; max-width: 200px; margin-bottom: 12px; border-radius: 4px;" />
+            ${logoBase64 ? `
+            <img src="cid:business-logo" alt="${businessName}" style="max-height: 60px; max-width: 200px; margin-bottom: 12px; border-radius: 4px;" />
             ` : ''}
             <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
               ${businessName}
@@ -422,6 +486,12 @@ export async function sendReminderEmail({
       </html>
     `,
     attachments: [
+      ...(logoBase64 ? [{
+        content: logoBase64,
+        filename: 'logo.png',
+        contentType: logoContentType || 'image/png',
+        contentId: 'business-logo'
+      }] : []),
       {
         content: pdfBuffer,
         filename: `Invoice-${invoiceNumber}.pdf`,

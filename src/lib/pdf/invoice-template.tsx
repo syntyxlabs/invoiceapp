@@ -335,6 +335,7 @@ const styles = StyleSheet.create({
 
 export interface InvoicePDFProps {
   invoice: {
+    id?: string
     invoice_number: string
     invoice_date: string
     due_date: string
@@ -370,19 +371,28 @@ export interface InvoicePDFProps {
     default_footer_note?: string | null
   }
   photos?: { url: string }[]
+  paymentPageUrl?: string | null
 }
 
-// Generate QR code URL for payment
-function getPaymentQrUrl(payid?: string | null, paymentLink?: string | null): string | null {
-  const content = payid || paymentLink
-  if (!content) return null
+// Generate QR code URL for payment page
+function getPaymentQrUrl(paymentPageUrl?: string | null): string | null {
+  if (!paymentPageUrl) return null
 
   // Use QR code API to generate QR code
-  const encoded = encodeURIComponent(content)
+  const encoded = encodeURIComponent(paymentPageUrl)
   return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encoded}&bgcolor=f8fafc`
 }
 
-export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps) {
+// Format BSB with dash for display (083338 -> 083-338)
+function formatBsbDisplay(bsb: string): string {
+  const digits = bsb.replace(/\D/g, '')
+  if (digits.length === 6) {
+    return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  }
+  return bsb
+}
+
+export function InvoicePDF({ invoice, businessProfile, photos, paymentPageUrl }: InvoicePDFProps) {
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-AU', {
       day: 'numeric',
@@ -423,17 +433,13 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
   const labourSubtotal = labourItems.reduce((sum, item) => sum + item.line_total, 0)
   const materialSubtotal = materialItems.reduce((sum, item) => sum + item.line_total, 0)
 
-  const qrCodeUrl = getPaymentQrUrl(businessProfile.payid, businessProfile.payment_link)
+  const qrCodeUrl = getPaymentQrUrl(paymentPageUrl)
   const hasPaymentInfo = businessProfile.bank_bsb || businessProfile.bank_account || businessProfile.payid || businessProfile.payment_link
+  const hasBankTransfer = businessProfile.bank_bsb || businessProfile.bank_account
 
   const showBusinessName =
     businessProfile.business_name &&
     businessProfile.business_name !== businessProfile.trading_name
-
-  const paymentTitle =
-    businessProfile.payment_link || businessProfile.payid
-      ? 'Pay online'
-      : 'Payment Details'
 
   return (
     <Document>
@@ -652,37 +658,60 @@ export function InvoicePDF({ invoice, businessProfile, photos }: InvoicePDFProps
                   {/* eslint-disable-next-line jsx-a11y/alt-text */}
                   <Image src={qrCodeUrl} style={styles.qrCode} />
                 </View>
-                <Text style={styles.qrLabel}>Scan to pay</Text>
+                <Text style={styles.qrLabel}>Scan for payment details</Text>
               </View>
             )}
             <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>{paymentTitle}</Text>
-              {businessProfile.payment_link && (
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>Link:</Text>
-                  <Link src={businessProfile.payment_link} style={styles.paymentLink}>
-                    <Text>{businessProfile.payment_link}</Text>
-                  </Link>
-                </View>
+              {/* Bank Transfer Section */}
+              {hasBankTransfer && (
+                <>
+                  <Text style={styles.paymentTitle}>Bank Transfer</Text>
+                  {businessProfile.bank_bsb && (
+                    <View style={styles.paymentRow}>
+                      <Text style={styles.paymentLabel}>BSB:</Text>
+                      <Text style={styles.paymentValue}>{formatBsbDisplay(businessProfile.bank_bsb)}</Text>
+                    </View>
+                  )}
+                  {businessProfile.bank_account && (
+                    <View style={styles.paymentRow}>
+                      <Text style={styles.paymentLabel}>Account:</Text>
+                      <Text style={styles.paymentValue}>{businessProfile.bank_account}</Text>
+                    </View>
+                  )}
+                  <View style={styles.paymentRow}>
+                    <Text style={styles.paymentLabel}>Reference:</Text>
+                    <Text style={styles.paymentValue}>{invoice.invoice_number}</Text>
+                  </View>
+                </>
               )}
+
+              {/* PayID Section */}
               {businessProfile.payid && (
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>PayID:</Text>
-                  <Text style={styles.paymentValue}>{businessProfile.payid}</Text>
-                </View>
+                <>
+                  <Text style={[styles.paymentTitle, hasBankTransfer ? { marginTop: 12 } : {}]}>PayID</Text>
+                  <View style={styles.paymentRow}>
+                    <Text style={styles.paymentLabel}></Text>
+                    <Text style={styles.paymentValue}>{businessProfile.payid}</Text>
+                  </View>
+                </>
               )}
-              {businessProfile.bank_bsb && (
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>BSB:</Text>
-                  <Text style={styles.paymentValue}>{businessProfile.bank_bsb}</Text>
-                </View>
+
+              {/* Payment Link */}
+              {businessProfile.payment_link && (
+                <>
+                  <Text style={[styles.paymentTitle, (hasBankTransfer || businessProfile.payid) ? { marginTop: 12 } : {}]}>Pay Online</Text>
+                  <View style={styles.paymentRow}>
+                    <Link src={businessProfile.payment_link} style={styles.paymentLink}>
+                      <Text>{businessProfile.payment_link}</Text>
+                    </Link>
+                  </View>
+                </>
               )}
-              {businessProfile.bank_account && (
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>Account:</Text>
-                  <Text style={styles.paymentValue}>{businessProfile.bank_account}</Text>
-                </View>
-              )}
+
+              {/* Reference note */}
+              <Text style={{ fontSize: 7, color: colors.textMuted, marginTop: 8 }}>
+                Include reference when paying
+              </Text>
             </View>
           </View>
         )}

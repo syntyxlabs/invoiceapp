@@ -19,15 +19,19 @@ interface Settings {
   auto_remind_after_days: number[]
 }
 
+// Default settings used when user hasn't customized
+const DEFAULT_SETTINGS: Settings = {
+  auto_remind_before_days: 2,
+  auto_remind_on_due: true,
+  auto_remind_after_days: [7, 14]
+}
+
 export function ReminderSettings({ businessProfileId }: ReminderSettingsProps) {
-  const [settings, setSettings] = useState<Settings>({
-    auto_remind_before_days: null,
-    auto_remind_on_due: false,
-    auto_remind_after_days: []
-  })
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [isCustomized, setIsCustomized] = useState(false)
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -45,6 +49,11 @@ export function ReminderSettings({ businessProfileId }: ReminderSettingsProps) {
           auto_remind_on_due: data.auto_remind_on_due,
           auto_remind_after_days: data.auto_remind_after_days || []
         })
+        setIsCustomized(true)
+      } else {
+        // Use defaults if no custom settings
+        setSettings(DEFAULT_SETTINGS)
+        setIsCustomized(false)
       }
 
       setIsLoading(false)
@@ -73,6 +82,7 @@ export function ReminderSettings({ businessProfileId }: ReminderSettingsProps) {
     if (error) {
       setSaveMessage('Failed to save settings')
     } else {
+      setIsCustomized(true)
       setSaveMessage('Settings saved!')
       setTimeout(() => setSaveMessage(null), 3000)
     }
@@ -107,6 +117,13 @@ export function ReminderSettings({ businessProfileId }: ReminderSettingsProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Default settings notice */}
+        {!isCustomized && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+            <strong>Using default settings:</strong> 2 days before due, on due date, and 7 & 14 days after.
+            Modify below and save to customize.
+          </div>
+        )}
         {/* Before Due Date */}
         <div className="flex items-center justify-between">
           <div>

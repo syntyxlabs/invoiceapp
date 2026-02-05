@@ -1,9 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { InvoicePDF, type InvoicePDFProps } from '@/lib/pdf/invoice-template'
-import { sendReminderEmail } from '@/lib/email/resend'
+import { sendReminderEmail, fetchLogoAsBuffer } from '@/lib/email/resend'
 import { createClient } from '@/lib/supabase/server'
 import { processBusinessProfileLogo } from '@/lib/pdf/image-utils'
+
+// Get the base URL for the app
+function getBaseUrl(headersList: Headers): string {
+  const forwardedHost = headersList.get('x-forwarded-host')
+  const forwardedProto = headersList.get('x-forwarded-proto') || 'https'
+
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`
+  }
+
+  const host = headersList.get('host')
+  if (host) {
+    const proto = host.includes('localhost') ? 'http' : 'https'
+    return `${proto}://${host}`
+  }
+
+  return process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000'
+}
 
 // Helper function to create PDF element
 function createPdfElement(props: InvoicePDFProps) {
@@ -22,6 +43,8 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient()
+    const headersList = await headers()
+    const baseUrl = getBaseUrl(headersList)
 
     // Get current user
     const { data: { user } } = await supabase.auth.getUser()
@@ -86,9 +109,13 @@ export async function POST(request: NextRequest) {
       .eq('invoice_id', invoiceId)
       .order('sort_order', { ascending: true })
 
+    // Generate payment page URL
+    const paymentPageUrl = `${baseUrl}/pay/${invoiceId}`
+
     // Transform to PDF format
     const pdfData: InvoicePDFProps = {
       invoice: {
+        id: invoiceId,
         invoice_number: invoiceData.invoice_number,
         invoice_date: invoiceData.invoice_date,
         due_date: invoiceData.due_date,
@@ -121,6 +148,7 @@ export async function POST(request: NextRequest) {
         default_footer_note: invoiceData.business_profile?.default_footer_note,
       },
       photos: [], // Photos will be added when invoice_photos table exists
+      paymentPageUrl,
     }
 
     // Convert logo URL to base64 for reliable PDF rendering
@@ -131,6 +159,9 @@ export async function POST(request: NextRequest) {
 
     // Generate PDF
     const pdfBuffer = await renderToBuffer(pdfElement)
+
+    // Fetch logo for email CID attachment (use original URL, not base64)
+    const logoData = await fetchLogoAsBuffer(invoiceData.business_profile?.logo_url)
 
     // Send reminder email
     await sendReminderEmail({
@@ -155,7 +186,8 @@ export async function POST(request: NextRequest) {
       pdfBuffer: Buffer.from(pdfBuffer),
       paymentLink: pdfData.businessProfile.payment_link,
       abn: pdfData.businessProfile.abn,
-      logoUrl: pdfData.businessProfile.logo_url,
+      logoBase64: logoData?.base64,
+      logoContentType: logoData?.contentType,
       replyTo: user.email!
     })
 

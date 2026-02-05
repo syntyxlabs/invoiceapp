@@ -1,8 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { InvoicePDF, type InvoicePDFProps } from '@/lib/pdf/invoice-template'
 import { createClient } from '@/lib/supabase/server'
 import { processBusinessProfileLogo, imageUrlToBase64 } from '@/lib/pdf/image-utils'
+
+// Get the base URL for the app
+function getBaseUrl(headersList: Headers): string {
+  // Check for forwarded host (when behind proxy/load balancer)
+  const forwardedHost = headersList.get('x-forwarded-host')
+  const forwardedProto = headersList.get('x-forwarded-proto') || 'https'
+
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`
+  }
+
+  // Fall back to host header
+  const host = headersList.get('host')
+  if (host) {
+    const proto = host.includes('localhost') ? 'http' : 'https'
+    return `${proto}://${host}`
+  }
+
+  // Last resort: use Vercel URL or localhost
+  return process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000'
+}
 
 // Helper function to create PDF element
 function createPdfElement(props: InvoicePDFProps) {
@@ -13,11 +37,13 @@ function createPdfElement(props: InvoicePDFProps) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    const headersList = await headers()
+    const baseUrl = getBaseUrl(headersList)
 
     // Check if this is a draft (data in body) or database invoice (ID in body)
     if (body.invoiceId) {
       // Fetch from database
-      return generateFromDatabase(body.invoiceId)
+      return generateFromDatabase(body.invoiceId, baseUrl)
     }
 
     // Generate from draft data
@@ -33,8 +59,11 @@ export async function POST(request: NextRequest) {
     // Convert logo URL to base64 for reliable PDF rendering
     const processedProfile = await processBusinessProfileLogo(businessProfile)
 
+    // Generate payment page URL if invoice has an ID
+    const paymentPageUrl = invoice.id ? `${baseUrl}/pay/${invoice.id}` : null
+
     // Create PDF element outside try/catch for error boundary compliance
-    const pdfElement = createPdfElement({ invoice, businessProfile: processedProfile, photos })
+    const pdfElement = createPdfElement({ invoice, businessProfile: processedProfile, photos, paymentPageUrl })
 
     // Generate PDF
     const pdfBuffer = await renderToBuffer(pdfElement)
@@ -60,7 +89,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Generate PDF from database invoice (future-ready)
-async function generateFromDatabase(invoiceId: string) {
+async function generateFromDatabase(invoiceId: string, baseUrl: string) {
   const supabase = await createClient()
 
   // Fetch invoice with business profile
@@ -102,9 +131,13 @@ async function generateFromDatabase(invoiceId: string) {
     job_address?: string | null
   }
 
+  // Generate payment page URL
+  const paymentPageUrl = `${baseUrl}/pay/${invoiceId}`
+
   // Transform to PDF format
   const pdfData: InvoicePDFProps = {
     invoice: {
+      id: invoiceId,
       invoice_number: invoiceData.invoice_number,
       invoice_date: invoiceData.invoice_date,
       due_date: invoiceData.due_date,
@@ -138,6 +171,7 @@ async function generateFromDatabase(invoiceId: string) {
       default_footer_note: invoiceData.business_profile?.default_footer_note,
     },
     photos: [],
+    paymentPageUrl,
   }
 
   // Convert logo URL to base64 for reliable PDF rendering

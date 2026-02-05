@@ -77,6 +77,29 @@ RESEND_API_KEY=
 - GST: 10% applied when `gst_enabled` is true
 - Currency: Always AUD
 
+## Deployment
+
+This project is hosted on **Vercel**. Vercel CLI is installed and configured.
+
+```bash
+# Deploy to production
+vercel --prod
+
+# Check deployment logs (after sending test requests)
+vercel logs <deployment-url>
+
+# List recent deployments
+vercel ls
+```
+
+**Workflow:**
+1. Make code changes
+2. Run `npx tsc --noEmit` to verify TypeScript compiles
+3. Run `vercel --prod` to deploy directly to production
+4. Test the changes on the live site
+
+Note: The app runs on Vercel (not locally), so check Vercel logs for server-side debugging.
+
 ## Custom Agents
 
 Three specialized agents in `.claude/agents/`:

@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { BusinessProfileForm } from '@/components/profile'
+import { BusinessProfileForm, ReminderSettings } from '@/components/profile'
 import { useBusinessProfile } from '@/hooks/useBusinessProfile'
 
 interface EditProfilePageProps {
@@ -210,6 +210,9 @@ export default function EditProfilePage({ params }: EditProfilePageProps) {
       </div>
 
       <BusinessProfileForm profile={profile} mode="edit" />
+
+      {/* Reminder Settings */}
+      <ReminderSettings businessProfileId={id} />
     </div>
   )
 }

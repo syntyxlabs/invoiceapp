@@ -1,9 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { InvoicePDF, type InvoicePDFProps } from '@/lib/pdf/invoice-template'
-import { sendInvoiceEmail } from '@/lib/email/resend'
+import { sendInvoiceEmail, fetchLogoAsBuffer } from '@/lib/email/resend'
 import { createClient } from '@/lib/supabase/server'
 import { processBusinessProfileLogo, imageUrlToBase64 } from '@/lib/pdf/image-utils'
+
+// Get the base URL for the app
+function getBaseUrl(headersList: Headers): string {
+  const forwardedHost = headersList.get('x-forwarded-host')
+  const forwardedProto = headersList.get('x-forwarded-proto') || 'https'
+
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`
+  }
+
+  const host = headersList.get('host')
+  if (host) {
+    const proto = host.includes('localhost') ? 'http' : 'https'
+    return `${proto}://${host}`
+  }
+
+  return process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000'
+}
 
 // Helper function to create PDF element
 function createPdfElement(props: InvoicePDFProps) {
@@ -14,6 +35,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const supabase = await createClient()
+    const headersList = await headers()
+    const baseUrl = getBaseUrl(headersList)
 
     // Get current user
     const { data: { user } } = await supabase.auth.getUser()
@@ -26,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Check if sending from database or draft
     if (body.invoiceId) {
-      return sendFromDatabase(supabase, user.email!, body.invoiceId)
+      return sendFromDatabase(supabase, user.email!, body.invoiceId, baseUrl)
     }
 
     // Send from draft data
@@ -49,11 +72,17 @@ export async function POST(request: NextRequest) {
     // Convert logo URL to base64 for reliable PDF rendering
     const processedProfile = await processBusinessProfileLogo(businessProfile)
 
+    // Generate payment page URL if invoice has an ID
+    const paymentPageUrl = invoice.id ? `${baseUrl}/pay/${invoice.id}` : null
+
     // Create PDF element
-    const pdfElement = createPdfElement({ invoice, businessProfile: processedProfile, photos })
+    const pdfElement = createPdfElement({ invoice, businessProfile: processedProfile, photos, paymentPageUrl })
 
     // Generate PDF
     const pdfBuffer = await renderToBuffer(pdfElement)
+
+    // Fetch logo for email CID attachment
+    const logoData = await fetchLogoAsBuffer(businessProfile.logo_url)
 
     // Send email
     await sendInvoiceEmail({
@@ -77,7 +106,8 @@ export async function POST(request: NextRequest) {
       pdfBuffer: Buffer.from(pdfBuffer),
       paymentLink: businessProfile.payment_link,
       abn: businessProfile.abn,
-      logoUrl: businessProfile.logo_url,
+      logoBase64: logoData?.base64,
+      logoContentType: logoData?.contentType,
       replyTo: replyTo || user.email!
     })
 
@@ -99,7 +129,8 @@ export async function POST(request: NextRequest) {
 async function sendFromDatabase(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userEmail: string,
-  invoiceId: string
+  invoiceId: string,
+  baseUrl: string
 ) {
   // Fetch invoice with all related data
   const { data: invoice, error: invoiceError } = await supabase
@@ -147,9 +178,13 @@ async function sendFromDatabase(
     .eq('invoice_id', invoiceId)
     .order('sort_order', { ascending: true })
 
+  // Generate payment page URL
+  const paymentPageUrl = `${baseUrl}/pay/${invoiceId}`
+
   // Transform to PDF format
   const pdfData: InvoicePDFProps = {
     invoice: {
+      id: invoiceId,
       invoice_number: invoiceData.invoice_number,
       invoice_date: invoiceData.invoice_date,
       due_date: invoiceData.due_date,
@@ -182,6 +217,7 @@ async function sendFromDatabase(
       default_footer_note: invoiceData.business_profile?.default_footer_note,
     },
     photos: [],
+    paymentPageUrl,
   }
 
   // Convert logo URL to base64 for reliable PDF rendering
@@ -213,6 +249,9 @@ async function sendFromDatabase(
   // Generate PDF
   const pdfBuffer = await renderToBuffer(pdfElement)
 
+  // Fetch logo for email CID attachment (use original URL, not base64)
+  const logoData = await fetchLogoAsBuffer(invoiceData.business_profile?.logo_url)
+
   // Send email
   await sendInvoiceEmail({
     to: pdfData.invoice.customer_emails,
@@ -235,7 +274,8 @@ async function sendFromDatabase(
     pdfBuffer: Buffer.from(pdfBuffer),
     paymentLink: pdfData.businessProfile.payment_link,
     abn: pdfData.businessProfile.abn,
-    logoUrl: pdfData.businessProfile.logo_url,
+    logoBase64: logoData?.base64,
+    logoContentType: logoData?.contentType,
     replyTo: userEmail
   })
 
