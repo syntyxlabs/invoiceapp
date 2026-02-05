@@ -79,12 +79,9 @@ RESEND_API_KEY=
 
 ## Deployment
 
-This project is hosted on **Vercel**. Vercel CLI is installed and configured.
+This project is hosted on **Vercel** with code stored on **GitHub**. Always commit to git before deploying.
 
 ```bash
-# Deploy to production
-vercel --prod
-
 # Check deployment logs (after sending test requests)
 vercel logs <deployment-url>
 
@@ -95,8 +92,12 @@ vercel ls
 **Workflow:**
 1. Make code changes
 2. Run `npx tsc --noEmit` to verify TypeScript compiles
-3. Run `vercel --prod` to deploy directly to production
-4. Test the changes on the live site
+3. **Commit to git first**: `git add . && git commit -m "message"`
+4. **Push to GitHub**: `git push origin main`
+5. Vercel auto-deploys from GitHub, or run `vercel --prod` manually
+6. Test the changes on the live site
+
+**IMPORTANT:** Never deploy to Vercel without committing to git first. Always keep GitHub and Vercel in sync.
 
 Note: The app runs on Vercel (not locally), so check Vercel logs for server-side debugging.
 
